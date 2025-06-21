@@ -1,7 +1,7 @@
 [project]
-name = "things-mcp-server"
+name = "things3-applescript-mcp"
 version = "0.1.0"
-description = "Things 3 MCP server with two way sync"
+description = "MCP server for bidirectional Things 3 integration using AppleScript"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
