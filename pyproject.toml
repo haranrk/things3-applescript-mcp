@@ -1,0 +1,15 @@
+[project]
+name = "things-mcp-server"
+version = "0.1.0"
+description = "Things 3 MCP server with two way sync"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "fastmcp>=2.8.1",
+    "python-dateutil>=2.9.0.post0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.1",
+]
