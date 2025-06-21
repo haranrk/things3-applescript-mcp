@@ -8,7 +8,7 @@ without requiring actual Things 3 application access.
 
 import pytest
 from datetime import datetime, date
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 
 from src.things3_api import Things3API
 from src.applescript_orchestrator import AppleScriptError
@@ -95,7 +95,7 @@ class TestThings3APITodoOperations:
     @pytest.fixture
     def api_with_mock(self):
         """Create API with mocked orchestrator."""
-        with patch("src.things3_api.AppleScriptOrchestrator") as mock_orch_class:
+        with patch("src.things3_api.AppleScriptOrchestrator"):
             api = Things3API()
             api.orchestrator = Mock()
             return api
@@ -254,7 +254,7 @@ class TestThings3APIProjectOperations:
     @pytest.fixture
     def api_with_mock(self):
         """Create API with mocked orchestrator."""
-        with patch("src.things3_api.AppleScriptOrchestrator") as mock_orch_class:
+        with patch("src.things3_api.AppleScriptOrchestrator"):
             api = Things3API()
             api.orchestrator = Mock()
             return api
@@ -342,7 +342,7 @@ class TestThings3APIAreaOperations:
     @pytest.fixture
     def api_with_mock(self):
         """Create API with mocked orchestrator."""
-        with patch("src.things3_api.AppleScriptOrchestrator") as mock_orch_class:
+        with patch("src.things3_api.AppleScriptOrchestrator"):
             api = Things3API()
             api.orchestrator = Mock()
             return api
@@ -401,7 +401,7 @@ class TestThings3APITagOperations:
     @pytest.fixture
     def api_with_mock(self):
         """Create API with mocked orchestrator."""
-        with patch("src.things3_api.AppleScriptOrchestrator") as mock_orch_class:
+        with patch("src.things3_api.AppleScriptOrchestrator"):
             api = Things3API()
             api.orchestrator = Mock()
             return api

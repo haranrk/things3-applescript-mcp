@@ -9,7 +9,7 @@ It provides a clean API for executing AppleScript commands and parsing their res
 import subprocess
 import json
 import logging
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List
 
 logger = logging.getLogger(__name__)
 
