@@ -98,7 +98,7 @@ class Things3API:
 
         return Todo(
             id=props["id"],
-            title=props["name"],
+            name=props["name"],
             notes=props.get("notes", ""),
             status=props.get("status"),
             due_date=due_date.date() if due_date else None,
@@ -132,7 +132,7 @@ class Things3API:
 
         return Project(
             id=props["id"],
-            title=props["name"],
+            name=props["name"],
             notes=props.get("notes", ""),
             status=props.get("status"),
             creation_date=self._parse_date(props["creation date"]),
@@ -160,7 +160,7 @@ class Things3API:
         """
         return Area(
             id=props["id"],
-            title=props["name"],
+            name=props["name"],
             tags=self._parse_tags(props.get("tag names", "")),
             collapsed=props.get("collapsed", False),
             class_=self._parse_class(props.get("class", "")),
@@ -178,7 +178,7 @@ class Things3API:
         """
         return Tag(
             id=props["id"],
-            title=props["name"],
+            name=props["name"],
             parent_tag=props.get("parent tag"),
             keyboard_shortcut=props.get("keyboard shortcut"),
             class_=self._parse_class(props.get("class", "")),

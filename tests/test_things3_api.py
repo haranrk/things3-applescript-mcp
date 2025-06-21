@@ -130,7 +130,7 @@ class TestThings3APITodoOperations:
 
         assert isinstance(result, Todo)
         assert result.id == "test-todo-123"
-        assert result.title == "Test Todo"
+        assert result.name == "Test Todo"
         assert result.notes == "Some notes"
         assert result.status == Status.OPEN
         assert result.class_ == ClassType.SELECTED_TODO
@@ -287,7 +287,7 @@ class TestThings3APIProjectOperations:
 
         assert isinstance(result, Project)
         assert result.id == "project-123"
-        assert result.title == "Test Project"
+        assert result.name == "Test Project"
         assert result.class_ == ClassType.PROJECT
 
         api_with_mock.orchestrator.execute_command.assert_called_once_with(
@@ -366,7 +366,7 @@ class TestThings3APIAreaOperations:
 
         assert isinstance(result, Area)
         assert result.id == "area-123"
-        assert result.title == "Test Area"
+        assert result.name == "Test Area"
         assert result.collapsed is False
         assert result.class_ == ClassType.AREA
 
@@ -425,7 +425,7 @@ class TestThings3APITagOperations:
 
         assert isinstance(result, Tag)
         assert result.id == "tag-123"
-        assert result.title == "Test Tag"
+        assert result.name == "Test Tag"
         assert result.keyboard_shortcut == "t"
         assert result.class_ == ClassType.TAG
 
@@ -486,7 +486,7 @@ class TestThings3APIParsingMethods:
         result = api._parse_todo(props)
 
         assert result.id == "todo-123"
-        assert result.title == "Complete Todo"
+        assert result.name == "Complete Todo"
         assert result.notes == "Detailed notes\nMultiple lines"
         assert result.status == "open"
         assert result.tags == ["urgent", "work", "@office"]
@@ -521,7 +521,7 @@ class TestThings3APIParsingMethods:
         result = api._parse_todo(props)
 
         assert result.id == "todo-min"
-        assert result.title == "Minimal Todo"
+        assert result.name == "Minimal Todo"
         assert result.notes == ""
         assert result.tags == []
         assert result.project is None
@@ -552,7 +552,7 @@ class TestThings3APIParsingMethods:
         result = api._parse_project(props)
 
         assert result.id == "proj-123"
-        assert result.title == "Complete Project"
+        assert result.name == "Complete Project"
         assert result.notes == "Project description"
         assert result.tags == ["quarterly", "high-priority"]
         assert result.area == "area id WORK123"
@@ -572,7 +572,7 @@ class TestThings3APIParsingMethods:
         result = api._parse_area(props)
 
         assert result.id == "area-789"
-        assert result.title == "Work Area"
+        assert result.name == "Work Area"
         assert result.tags == ["professional"]
         assert result.collapsed is True
         assert result.class_ == ClassType.AREA
@@ -590,7 +590,7 @@ class TestThings3APIParsingMethods:
         result = api._parse_tag(props)
 
         assert result.id == "tag-abc"
-        assert result.title == "Important"
+        assert result.name == "Important"
         assert result.parent_tag == "tag-parent-123"
         assert result.keyboard_shortcut == "i"
         assert result.class_ == ClassType.TAG
@@ -608,6 +608,6 @@ class TestThings3APIParsingMethods:
         result = api._parse_tag(props)
 
         assert result.id == "tag-min"
-        assert result.title == "Simple Tag"
+        assert result.name == "Simple Tag"
         assert result.parent_tag is None
         assert result.keyboard_shortcut is None

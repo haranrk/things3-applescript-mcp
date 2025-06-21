@@ -34,7 +34,7 @@ class ClassType(str, Enum):
 class TodoBase(BaseModel):
     """Base model for Todo creation/update operations."""
 
-    title: str  # Maps to 'name' in AppleScript
+    name: str
     notes: Optional[str] = None
     due_date: Optional[date] = None
     status: Optional[Status] = None
@@ -65,7 +65,7 @@ class Todo(TodoBase):
 class ProjectBase(BaseModel):
     """Base model for Project creation/update operations."""
 
-    title: str
+    name: str
     notes: Optional[str] = None
     status: Optional[Status] = None
     tags: Optional[List[str]] = None
@@ -92,7 +92,7 @@ class Project(ProjectBase):
 class AreaBase(BaseModel):
     """Base model for Area creation/update operations."""
 
-    title: str  # Maps to 'name' in AppleScript
+    name: str
 
 
 class Area(AreaBase):
@@ -109,7 +109,7 @@ class Area(AreaBase):
 class TagBase(BaseModel):
     """Base model for Tag creation/update operations."""
 
-    title: str  # Maps to 'name' in AppleScript
+    name: str
 
 
 class Tag(TagBase):
@@ -132,7 +132,7 @@ class TodoCreate(TodoBase):
 class TodoUpdate(BaseModel):
     """Model for updating an existing Todo."""
 
-    title: Optional[str] = None
+    name: Optional[str] = None
     notes: Optional[str] = None
     due_date: Optional[date] = None
     status: Optional[Status] = None
