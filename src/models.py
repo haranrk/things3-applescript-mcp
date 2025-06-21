@@ -15,6 +15,7 @@ from pydantic import BaseModel, Field, ConfigDict
 
 class Status(str, Enum):
     """Status of a Todo or Project."""
+
     OPEN = "open"
     COMPLETED = "completed"
     CANCELED = "canceled"
@@ -22,6 +23,7 @@ class Status(str, Enum):
 
 class ClassType(str, Enum):
     """Class type for Things 3 objects."""
+
     TODO = "to do"
     SELECTED_TODO = "selected to do"
     PROJECT = "project"
@@ -31,6 +33,7 @@ class ClassType(str, Enum):
 
 class TodoBase(BaseModel):
     """Base model for Todo creation/update operations."""
+
     title: str  # Maps to 'name' in AppleScript
     notes: Optional[str] = None
     due_date: Optional[date] = None
@@ -46,8 +49,9 @@ class TodoBase(BaseModel):
 
 class Todo(TodoBase):
     """Model representing a Things 3 Todo."""
+
     model_config = ConfigDict(populate_by_name=True)
-    
+
     id: str
     creation_date: datetime
     modification_date: datetime
@@ -60,6 +64,7 @@ class Todo(TodoBase):
 
 class ProjectBase(BaseModel):
     """Base model for Project creation/update operations."""
+
     title: str
     notes: Optional[str] = None
     status: Optional[Status] = None
@@ -71,8 +76,9 @@ class ProjectBase(BaseModel):
 
 class Project(ProjectBase):
     """Model representing a Things 3 Project."""
+
     model_config = ConfigDict(populate_by_name=True)
-    
+
     id: str
     creation_date: datetime
     modification_date: datetime
@@ -85,13 +91,15 @@ class Project(ProjectBase):
 
 class AreaBase(BaseModel):
     """Base model for Area creation/update operations."""
+
     title: str  # Maps to 'name' in AppleScript
 
 
 class Area(AreaBase):
     """Model representing a Things 3 Area."""
+
     model_config = ConfigDict(populate_by_name=True)
-    
+
     id: str
     collapsed: Optional[bool] = None
     tags: Optional[List[str]] = None
@@ -100,13 +108,15 @@ class Area(AreaBase):
 
 class TagBase(BaseModel):
     """Base model for Tag creation/update operations."""
+
     title: str  # Maps to 'name' in AppleScript
 
 
 class Tag(TagBase):
     """Model representing a Things 3 Tag."""
+
     model_config = ConfigDict(populate_by_name=True)
-    
+
     id: str
     parent_tag: Optional[str] = Field(None, alias="parent tag")
     keyboard_shortcut: Optional[str] = Field(None, alias="keyboard shortcut")
@@ -115,11 +125,13 @@ class Tag(TagBase):
 
 class TodoCreate(TodoBase):
     """Model for creating a new Todo."""
+
     pass
 
 
 class TodoUpdate(BaseModel):
     """Model for updating an existing Todo."""
+
     title: Optional[str] = None
     notes: Optional[str] = None
     due_date: Optional[date] = None
