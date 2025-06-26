@@ -10,6 +10,7 @@ import subprocess
 import json
 import logging
 from typing import Any, Dict, List
+from datetime import date, datetime
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +55,32 @@ class AppleScriptOrchestrator:
             logger.debug(f"Executing AppleScript: {script}")
             result = subprocess.run(
                 ["osascript", "-s", "s", "-e", script],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            return result.stdout.strip()
+        except subprocess.CalledProcessError as e:
+            logger.error(f"AppleScript execution failed: {e.stderr}")
+            raise AppleScriptError(f"AppleScript execution failed: {e.stderr}")
+
+    def _execute_script_without_structured_output(self, script: str) -> str:
+        """
+        Execute an AppleScript without structured output flag.
+
+        Args:
+            script: The AppleScript code to execute.
+
+        Returns:
+            The raw output of the AppleScript execution.
+
+        Raises:
+            AppleScriptError: If the AppleScript execution fails.
+        """
+        try:
+            logger.debug(f"Executing AppleScript (no structured output): {script}")
+            result = subprocess.run(
+                ["osascript", "-e", script],
                 capture_output=True,
                 text=True,
                 check=True,
@@ -345,8 +372,14 @@ class AppleScriptOrchestrator:
             AppleScriptError: If the AppleScript execution fails.
         """
         script = self._build_tell_block(command)
-        result = self._execute_script(script)
-        return result if return_raw else self._parse_result(result)
+
+        # For creation commands, don't use structured output to avoid syntax issues
+        if return_raw or "make new to do" in command:
+            result = self._execute_script_without_structured_output(script)
+            return result
+        else:
+            result = self._execute_script(script)
+            return result if return_raw else self._parse_result(result)
 
     def execute_raw_script(self, script: str, return_raw: bool = False) -> Any:
         """
@@ -364,3 +397,169 @@ class AppleScriptOrchestrator:
         """
         result = self._execute_script(script)
         return result if return_raw else self._parse_result(result)
+
+    def _encode_todo_properties(self, todo_data) -> str:
+        """
+        Convert a TodoCreate object to AppleScript properties format.
+
+        Args:
+            todo_data: TodoCreate pydantic model or dict with todo properties
+
+        Returns:
+            AppleScript properties string for creating a todo
+        """
+        if hasattr(todo_data, "model_dump"):
+            # Pydantic model
+            data = todo_data.model_dump(exclude_none=True)
+        else:
+            # Dictionary
+            data = {k: v for k, v in todo_data.items() if v is not None}
+
+        properties = []
+
+        # Required name field
+        if "name" in data:
+            properties.append(f"name:{self._to_applescript_value(data['name'])}")
+
+        # Optional notes
+        if "notes" in data:
+            properties.append(f"notes:{self._to_applescript_value(data['notes'])}")
+
+        # Skip dates in initial properties - set them after creation
+
+        # Tags - convert list to comma-separated string
+        if "tags" in data and data["tags"]:
+            tag_names = ", ".join(data["tags"])
+            properties.append(f"tag names:{self._to_applescript_value(tag_names)}")
+
+        # Skip checklist items in initial properties - add them after creation
+
+        return "{" + ", ".join(properties) + "}"
+
+    def _format_date_for_applescript(self, date_value) -> str:
+        """
+        Format a Python date/datetime for AppleScript.
+
+        Args:
+            date_value: date, datetime, or date string
+
+        Returns:
+            AppleScript date expression
+        """
+        if isinstance(date_value, str):
+            try:
+                # Try to parse as ISO date
+                if "T" in date_value or " " in date_value:
+                    parsed_date = datetime.fromisoformat(
+                        date_value.replace("Z", "+00:00")
+                    )
+                else:
+                    parsed_date = datetime.strptime(date_value, "%Y-%m-%d")
+            except ValueError:
+                return None
+        elif isinstance(date_value, datetime):
+            parsed_date = date_value
+        elif isinstance(date_value, date):
+            parsed_date = datetime.combine(date_value, datetime.min.time())
+        else:
+            return None
+
+        # Calculate days difference from today
+        today = datetime.now().date()
+        target_date = parsed_date.date()
+        days_diff = (target_date - today).days
+
+        # Format as AppleScript date expression
+        if days_diff == 0:
+            return "current date"
+        elif days_diff == 1:
+            return "(current date) + (1 * days)"
+        elif days_diff == -1:
+            return "(current date) - (1 * days)"
+        else:
+            return f"(current date) + ({days_diff} * days)"
+
+    def create_todo_command(self, todo_data) -> str:
+        """
+        Generate AppleScript command to create a todo.
+
+        Args:
+            todo_data: TodoCreate object or dict with todo properties
+
+        Returns:
+            AppleScript command to create the todo
+        """
+        properties = self._encode_todo_properties(todo_data)
+        command = f"set newTodo to make new to do with properties {properties}\n"
+
+        # Handle properties that need to be set after creation
+        if hasattr(todo_data, "model_dump"):
+            data = todo_data.model_dump(exclude_none=True)
+        else:
+            data = {k: v for k, v in todo_data.items() if v is not None}
+
+        # Set due date after creation
+        if "due_date" in data:
+            date_str = self._format_date_for_applescript(data["due_date"])
+            if date_str:
+                command += f"set due date of newTodo to {date_str}\n"
+
+        # Set deadline after creation
+        if "deadline" in data:
+            date_str = self._format_date_for_applescript(data["deadline"])
+            if date_str:
+                command += f"set deadline of newTodo to {date_str}\n"
+
+        # Set start date after creation
+        if "start_date" in data:
+            date_str = self._format_date_for_applescript(data["start_date"])
+            if date_str:
+                command += f"set start date of newTodo to {date_str}\n"
+
+        # Move to specific list/project if specified
+        if "when" in data:
+            when_value = data["when"].lower()
+            if when_value in ["today", "tomorrow", "upcoming", "anytime", "someday"]:
+                if when_value == "tomorrow":
+                    command += 'move newTodo to list "Today"\n'
+                    command += (
+                        "set due date of newTodo to (current date) + (1 * days)\n"
+                    )
+                else:
+                    list_name = when_value.capitalize()
+                    command += f'move newTodo to list "{list_name}"\n'
+
+        # Set project reference
+        if "project" in data:
+            project_ref = data["project"]
+            if project_ref.startswith("project id "):
+                # Reference by ID
+                project_id = project_ref.replace("project id ", "")
+                command += f'move newTodo to project id "{project_id}"\n'
+            else:
+                # Reference by name
+                command += f'move newTodo to project "{project_ref}"\n'
+
+        # Set area reference
+        if "area" in data:
+            area_ref = data["area"]
+            if area_ref.startswith("area id "):
+                # Reference by ID
+                area_id = area_ref.replace("area id ", "")
+                command += f'set area of newTodo to area id "{area_id}"\n'
+            else:
+                # Reference by name
+                command += f'set area of newTodo to area "{area_ref}"\n'
+
+        # Add checklist items after creation
+        if "checklist" in data and data["checklist"]:
+            for item in data["checklist"]:
+                if isinstance(item, dict) and "name" in item:
+                    item_name = self._to_applescript_value(item["name"])
+                    command += f"tell newTodo to make new checklist item with properties {{name:{item_name}}}\n"
+                elif isinstance(item, str):
+                    item_name = self._to_applescript_value(item)
+                    command += f"tell newTodo to make new checklist item with properties {{name:{item_name}}}\n"
+
+        command += "return id of newTodo"
+        return command

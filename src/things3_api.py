@@ -11,8 +11,8 @@ from datetime import datetime
 from typing import List, Optional, Dict, Any
 from dateutil import parser as date_parser
 
-from applescript_orchestrator import AppleScriptOrchestrator, AppleScriptError
-from models import Todo, Project, Area, Tag, ClassType
+from .applescript_orchestrator import AppleScriptOrchestrator, AppleScriptError
+from .models import Todo, Project, Area, Tag, ClassType, TodoCreate
 
 logger = logging.getLogger(__name__)
 
@@ -458,3 +458,34 @@ class Things3API:
             props_list = [props_list] if props_list else []
 
         return [self._parse_tag(props) for props in props_list]
+
+    def create_todo(self, todo_data: TodoCreate) -> Todo:
+        """
+        Create a new todo in Things 3.
+
+        Args:
+            todo_data: TodoCreate object with todo properties
+
+        Returns:
+            The created Todo object
+
+        Raises:
+            AppleScriptError: If the AppleScript execution fails
+        """
+        # Generate the AppleScript command using the orchestrator
+        command = self.orchestrator.create_todo_command(todo_data)
+
+        # Execute the command to create the todo
+        todo_id = self.orchestrator.execute_command(command, return_raw=True)
+
+        if not todo_id:
+            raise AppleScriptError("Failed to create todo - no ID returned")
+
+        # Fetch and return the created todo
+        created_todo = self.get_todo(todo_id)
+        if not created_todo:
+            raise AppleScriptError(
+                f"Failed to retrieve created todo with ID: {todo_id}"
+            )
+
+        return created_todo
