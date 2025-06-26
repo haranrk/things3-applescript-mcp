@@ -19,6 +19,6 @@ from .models import (
     Tag as Tag,
     Status as Status,
 )
-from .mcp_server import mcp as mcp
+# MCP server is available via: python -m src.mcp_server
 
 __version__ = "0.1.0"

@@ -10,9 +10,9 @@ import pytest
 from datetime import datetime, date
 from unittest.mock import Mock, patch
 
-from src.things3_api import Things3API
-from src.applescript_orchestrator import AppleScriptError
-from src.models import Todo, Project, Area, Tag, Status, ClassType
+from ..things3_api import Things3API
+from ..applescript_orchestrator import AppleScriptError
+from ..models import Todo, Project, Area, Tag, Status, ClassType
 
 
 class TestThings3APIInit:
