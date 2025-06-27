@@ -1,16 +1,34 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
 name = "things3-applescript-mcp"
 version = "0.1.0"
 description = "MCP server for bidirectional Things 3 integration using AppleScript"
-readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "fastmcp>=2.8.1",
     "python-dateutil>=2.9.0.post0",
 ]
 
+[project.scripts]
+things3-mcp-server = "things3_mcp.mcp_server:mcp.run"
+
 [dependency-groups]
 dev = [
     "pytest>=8.4.1",
     "ruff>=0.12.0",
 ]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+[tool.hatch.build]
+sources = ["src"]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel.force-include]
+"src" = "things3_mcp"

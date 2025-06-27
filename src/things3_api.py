@@ -12,7 +12,7 @@ from typing import List, Optional, Dict, Any
 from dateutil import parser as date_parser
 
 from .applescript_orchestrator import AppleScriptOrchestrator, AppleScriptError
-from .models import Todo, Project, Area, Tag, ClassType, TodoCreate
+from .models import Todo, Project, Area, Tag, ClassType, TodoCreate, TodoUpdate
 
 logger = logging.getLogger(__name__)
 
@@ -489,3 +489,35 @@ class Things3API:
             )
 
         return created_todo
+
+    def update_todo(self, todo_id: str, update_data: TodoUpdate) -> Todo:
+        """
+        Update an existing todo in Things 3.
+
+        Args:
+            todo_id: The ID of the todo to update
+            update_data: TodoUpdate object with update properties
+
+        Returns:
+            The updated Todo object
+
+        Raises:
+            AppleScriptError: If the AppleScript execution fails
+        """
+        # Generate the AppleScript command using the orchestrator
+        command = self.orchestrator.update_todo_command(todo_id, update_data)
+
+        # Execute the command to update the todo
+        result_id = self.orchestrator.execute_command(command, return_raw=True)
+
+        if not result_id or result_id != todo_id:
+            raise AppleScriptError(f"Failed to update todo - unexpected result: {result_id}")
+
+        # Fetch and return the updated todo
+        updated_todo = self.get_todo(todo_id)
+        if not updated_todo:
+            raise AppleScriptError(
+                f"Failed to retrieve updated todo with ID: {todo_id}"
+            )
+
+        return updated_todo

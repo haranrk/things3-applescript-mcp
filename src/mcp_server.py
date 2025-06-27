@@ -9,7 +9,7 @@ from fastmcp import FastMCP
 from pydantic import Field
 
 from .things3_api import Things3API
-from .models import TodoCreate
+from .models import TodoCreate, TodoUpdate
 
 # Create the MCP server
 mcp = FastMCP(name="things3-mcp")
@@ -132,6 +132,68 @@ async def create_todo(
     # Create the todo
     created_todo = api.create_todo(todo_data)
     return created_todo.model_dump()
+
+
+@mcp.tool
+async def update_todo(
+    todo_id: str = Field(description="The ID of the todo to update"),
+    name: Optional[str] = Field(default=None, description="New title/name for the todo"),
+    notes: Optional[str] = Field(default=None, description="New notes or description for the todo"),
+    due_date: Optional[str] = Field(default=None, description="New due date in YYYY-MM-DD format"),
+    tags: Optional[List[str]] = Field(default=None, description="New list of tag names to apply to the todo"),
+    project_id: Optional[str] = Field(default=None, description="ID of the project to assign the todo to"),
+    area_id: Optional[str] = Field(default=None, description="ID of the area to assign the todo to"),
+    when: Optional[str] = Field(default=None, description="When to schedule: 'today', 'tomorrow', 'anytime', 'someday', etc."),
+    status: Optional[str] = Field(default=None, description="Status: 'open', 'completed', or 'canceled'"),
+) -> Dict[str, Any]:
+    """Update an existing todo in Things 3.
+    
+    Updates the specified todo with the provided properties and returns the updated todo.
+    Only provided fields will be updated; others remain unchanged.
+    """
+    # Convert date strings to date objects if provided
+    from datetime import datetime
+    
+    parsed_due_date = None
+    
+    if due_date is not None:
+        if due_date:  # Non-empty string
+            parsed_due_date = datetime.fromisoformat(due_date).date()
+        # Empty string or None will clear the date
+    
+    # Build project/area references if provided
+    project_ref = None
+    if project_id is not None:
+        project_ref = f"project id {project_id}" if project_id else None
+    
+    area_ref = None
+    if area_id is not None:
+        area_ref = f"area id {area_id}" if area_id else None
+    
+    # Create TodoUpdate object with only provided fields
+    update_fields = {}
+    if name is not None:
+        update_fields["name"] = name
+    if notes is not None:
+        update_fields["notes"] = notes
+    if due_date is not None:
+        update_fields["due_date"] = parsed_due_date
+    if tags is not None:
+        update_fields["tags"] = tags
+    if project_ref is not None:
+        update_fields["project"] = project_ref
+    if area_ref is not None:
+        update_fields["area"] = area_ref
+    if when is not None:
+        update_fields["when"] = when
+    if status is not None:
+        update_fields["status"] = status
+    
+    update_data = TodoUpdate(**update_fields)
+    
+    # Update the todo
+    updated_todo = api.update_todo(todo_id, update_data)
+    return updated_todo.model_dump()
 
 
 # Project operations

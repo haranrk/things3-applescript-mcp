@@ -130,7 +130,11 @@ class TodoCreate(TodoBase):
 
 
 class TodoUpdate(BaseModel):
-    """Model for updating an existing Todo."""
+    """Model for updating an existing Todo.
+    
+    Note: deadline and start_date are not supported for todos in Things 3.
+    These properties only exist for projects.
+    """
 
     name: Optional[str] = None
     notes: Optional[str] = None
@@ -140,6 +144,4 @@ class TodoUpdate(BaseModel):
     project: Optional[str] = None
     area: Optional[str] = None
     when: Optional[str] = None
-    deadline: Optional[date] = None
-    start_date: Optional[date] = None
     checklist: Optional[List[Dict[str, str]]] = None
