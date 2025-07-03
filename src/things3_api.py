@@ -11,8 +11,8 @@ from datetime import datetime
 from typing import List, Optional, Dict, Any
 from dateutil import parser as date_parser
 
-from .applescript_orchestrator import AppleScriptOrchestrator, AppleScriptError
-from .models import Todo, Project, Area, Tag, ClassType, TodoCreate, TodoUpdate
+from things3_mcp.applescript_orchestrator import AppleScriptOrchestrator, AppleScriptError
+from things3_mcp.models import Todo, Project, Area, Tag, ClassType, TodoCreate, TodoUpdate
 
 logger = logging.getLogger(__name__)
 

@@ -10,15 +10,15 @@ import pytest
 from datetime import datetime, date
 from unittest.mock import Mock, patch
 
-from ..things3_api import Things3API
-from ..applescript_orchestrator import AppleScriptError
-from ..models import Todo, Project, Area, Tag, Status, ClassType
+from things3_mcp.things3_api import Things3API
+from things3_mcp.applescript_orchestrator import AppleScriptError
+from things3_mcp.models import Todo, Project, Area, Tag, Status, ClassType
 
 
 class TestThings3APIInit:
     """Test API initialization."""
 
-    @patch("src.things3_api.AppleScriptOrchestrator")
+    @patch("things3_mcp.things3_api.AppleScriptOrchestrator")
     def test_init_creates_orchestrator(self, mock_orchestrator_class):
         """Test that initialization creates orchestrator with correct app name."""
         api = Things3API()
@@ -53,7 +53,7 @@ class TestThings3APIHelperMethods:
 
     def test_parse_date_invalid(self, api):
         """Test parsing invalid date string."""
-        with patch("src.things3_api.logger") as mock_logger:
+        with patch("things3_mcp.things3_api.logger") as mock_logger:
             result = api._parse_date("not a date")
             assert result is None
             mock_logger.warning.assert_called()
@@ -95,7 +95,7 @@ class TestThings3APITodoOperations:
     @pytest.fixture
     def api_with_mock(self):
         """Create API with mocked orchestrator."""
-        with patch("src.things3_api.AppleScriptOrchestrator"):
+        with patch("things3_mcp.things3_api.AppleScriptOrchestrator"):
             api = Things3API()
             api.orchestrator = Mock()
             return api
@@ -254,7 +254,7 @@ class TestThings3APIProjectOperations:
     @pytest.fixture
     def api_with_mock(self):
         """Create API with mocked orchestrator."""
-        with patch("src.things3_api.AppleScriptOrchestrator"):
+        with patch("things3_mcp.things3_api.AppleScriptOrchestrator"):
             api = Things3API()
             api.orchestrator = Mock()
             return api
@@ -342,7 +342,7 @@ class TestThings3APIAreaOperations:
     @pytest.fixture
     def api_with_mock(self):
         """Create API with mocked orchestrator."""
-        with patch("src.things3_api.AppleScriptOrchestrator"):
+        with patch("things3_mcp.things3_api.AppleScriptOrchestrator"):
             api = Things3API()
             api.orchestrator = Mock()
             return api
@@ -401,7 +401,7 @@ class TestThings3APITagOperations:
     @pytest.fixture
     def api_with_mock(self):
         """Create API with mocked orchestrator."""
-        with patch("src.things3_api.AppleScriptOrchestrator"):
+        with patch("things3_mcp.things3_api.AppleScriptOrchestrator"):
             api = Things3API()
             api.orchestrator = Mock()
             return api

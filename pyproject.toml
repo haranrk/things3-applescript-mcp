@@ -13,7 +13,7 @@ dependencies = [
 ]
 
 [project.scripts]
-things3-mcp-server = "things3_mcp.mcp_server:mcp.run"
+things3-mcp-server = "things3_mcp.mcp_server:main"
 
 [dependency-groups]
 dev = [

@@ -8,8 +8,8 @@ from typing import List, Optional, Dict, Any
 from fastmcp import FastMCP
 from pydantic import Field
 
-from .things3_api import Things3API
-from .models import TodoCreate, TodoUpdate
+from things3_mcp.things3_api import Things3API
+from things3_mcp.models import TodoCreate, TodoUpdate
 
 # Create the MCP server
 mcp = FastMCP(name="things3-mcp")
@@ -279,13 +279,15 @@ def signal_handler(signum, frame):
     print("\nShutting down server gracefully...", file=sys.stderr)
     sys.exit(0)
 
-
-if __name__ == "__main__":
+def main():
     # Register signal handler for graceful shutdown
     signal.signal(signal.SIGINT, signal_handler)
     
     try:
-        mcp.run(transport="streamable-http")
+        mcp.run(transport="streamable-http", port=8000)
     except KeyboardInterrupt:
         print("\nShutting down server gracefully...", file=sys.stderr)
         sys.exit(0)
+
+if __name__ == "__main__":
+    main()
