@@ -131,7 +131,7 @@ class TodoCreate(TodoBase):
 
 class TodoUpdate(BaseModel):
     """Model for updating an existing Todo.
-    
+
     Note: deadline and start_date are not supported for todos in Things 3.
     These properties only exist for projects.
     """

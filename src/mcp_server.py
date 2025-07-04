@@ -85,37 +85,54 @@ async def get_todos_by_tag(
 @mcp.tool
 async def create_todo(
     name: str = Field(description="The title/name of the todo"),
-    notes: Optional[str] = Field(default=None, description="Notes or description for the todo"),
-    due_date: Optional[str] = Field(default=None, description="Due date in YYYY-MM-DD format"),
-    deadline: Optional[str] = Field(default=None, description="Deadline in YYYY-MM-DD format"),
-    start_date: Optional[str] = Field(default=None, description="Start date in YYYY-MM-DD format"),
-    tags: Optional[List[str]] = Field(default=None, description="List of tag names to apply to the todo"),
-    project_id: Optional[str] = Field(default=None, description="ID of the project to assign the todo to"),
-    area_id: Optional[str] = Field(default=None, description="ID of the area to assign the todo to"),
-    when: Optional[str] = Field(default=None, description="When to schedule: 'today', 'tomorrow', 'anytime', 'someday', etc."),
+    notes: Optional[str] = Field(
+        default=None, description="Notes or description for the todo"
+    ),
+    due_date: Optional[str] = Field(
+        default=None, description="Due date in YYYY-MM-DD format"
+    ),
+    deadline: Optional[str] = Field(
+        default=None, description="Deadline in YYYY-MM-DD format"
+    ),
+    start_date: Optional[str] = Field(
+        default=None, description="Start date in YYYY-MM-DD format"
+    ),
+    tags: Optional[List[str]] = Field(
+        default=None, description="List of tag names to apply to the todo"
+    ),
+    project_id: Optional[str] = Field(
+        default=None, description="ID of the project to assign the todo to"
+    ),
+    area_id: Optional[str] = Field(
+        default=None, description="ID of the area to assign the todo to"
+    ),
+    when: Optional[str] = Field(
+        default=None,
+        description="When to schedule: 'today', 'tomorrow', 'anytime', 'someday', etc.",
+    ),
 ) -> Dict[str, Any]:
     """Create a new todo in Things 3.
-    
+
     Creates a new todo with the specified properties and returns the created todo.
     """
     # Convert date strings to date objects if provided
     from datetime import datetime
-    
+
     parsed_due_date = None
-    parsed_deadline = None 
+    parsed_deadline = None
     parsed_start_date = None
-    
+
     if due_date:
         parsed_due_date = datetime.fromisoformat(due_date).date()
     if deadline:
         parsed_deadline = datetime.fromisoformat(deadline).date()
     if start_date:
         parsed_start_date = datetime.fromisoformat(start_date).date()
-    
+
     # Build project/area references if provided
     project_ref = f"project id {project_id}" if project_id else None
     area_ref = f"area id {area_id}" if area_id else None
-    
+
     # Create TodoCreate object
     todo_data = TodoCreate(
         name=name,
@@ -128,7 +145,7 @@ async def create_todo(
         area=area_ref,
         when=when,
     )
-    
+
     # Create the todo
     created_todo = api.create_todo(todo_data)
     return created_todo.model_dump()
@@ -137,39 +154,56 @@ async def create_todo(
 @mcp.tool
 async def update_todo(
     todo_id: str = Field(description="The ID of the todo to update"),
-    name: Optional[str] = Field(default=None, description="New title/name for the todo"),
-    notes: Optional[str] = Field(default=None, description="New notes or description for the todo"),
-    due_date: Optional[str] = Field(default=None, description="New due date in YYYY-MM-DD format"),
-    tags: Optional[List[str]] = Field(default=None, description="New list of tag names to apply to the todo"),
-    project_id: Optional[str] = Field(default=None, description="ID of the project to assign the todo to"),
-    area_id: Optional[str] = Field(default=None, description="ID of the area to assign the todo to"),
-    when: Optional[str] = Field(default=None, description="When to schedule: 'today', 'tomorrow', 'anytime', 'someday', etc."),
-    status: Optional[str] = Field(default=None, description="Status: 'open', 'completed', or 'canceled'"),
+    name: Optional[str] = Field(
+        default=None, description="New title/name for the todo"
+    ),
+    notes: Optional[str] = Field(
+        default=None, description="New notes or description for the todo"
+    ),
+    due_date: Optional[str] = Field(
+        default=None, description="New due date in YYYY-MM-DD format"
+    ),
+    tags: Optional[List[str]] = Field(
+        default=None, description="New list of tag names to apply to the todo"
+    ),
+    project_id: Optional[str] = Field(
+        default=None, description="ID of the project to assign the todo to"
+    ),
+    area_id: Optional[str] = Field(
+        default=None, description="ID of the area to assign the todo to"
+    ),
+    when: Optional[str] = Field(
+        default=None,
+        description="When to schedule: 'today', 'tomorrow', 'anytime', 'someday', etc.",
+    ),
+    status: Optional[str] = Field(
+        default=None, description="Status: 'open', 'completed', or 'canceled'"
+    ),
 ) -> Dict[str, Any]:
     """Update an existing todo in Things 3.
-    
+
     Updates the specified todo with the provided properties and returns the updated todo.
     Only provided fields will be updated; others remain unchanged.
     """
     # Convert date strings to date objects if provided
     from datetime import datetime
-    
+
     parsed_due_date = None
-    
+
     if due_date is not None:
         if due_date:  # Non-empty string
             parsed_due_date = datetime.fromisoformat(due_date).date()
         # Empty string or None will clear the date
-    
+
     # Build project/area references if provided
     project_ref = None
     if project_id is not None:
         project_ref = f"project id {project_id}" if project_id else None
-    
+
     area_ref = None
     if area_id is not None:
         area_ref = f"area id {area_id}" if area_id else None
-    
+
     # Create TodoUpdate object with only provided fields
     update_fields = {}
     if name is not None:
@@ -188,9 +222,9 @@ async def update_todo(
         update_fields["when"] = when
     if status is not None:
         update_fields["status"] = status
-    
+
     update_data = TodoUpdate(**update_fields)
-    
+
     # Update the todo
     updated_todo = api.update_todo(todo_id, update_data)
     return updated_todo.model_dump()
@@ -279,15 +313,17 @@ def signal_handler(signum, frame):
     print("\nShutting down server gracefully...", file=sys.stderr)
     sys.exit(0)
 
+
 def main():
     # Register signal handler for graceful shutdown
     signal.signal(signal.SIGINT, signal_handler)
-    
+
     try:
         mcp.run(transport="streamable-http", port=8000)
     except KeyboardInterrupt:
         print("\nShutting down server gracefully...", file=sys.stderr)
         sys.exit(0)
+
 
 if __name__ == "__main__":
     main()

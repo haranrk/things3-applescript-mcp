@@ -11,8 +11,19 @@ from datetime import datetime
 from typing import List, Optional, Dict, Any
 from dateutil import parser as date_parser
 
-from things3_mcp.applescript_orchestrator import AppleScriptOrchestrator, AppleScriptError
-from things3_mcp.models import Todo, Project, Area, Tag, ClassType, TodoCreate, TodoUpdate
+from things3_mcp.applescript_orchestrator import (
+    AppleScriptOrchestrator,
+    AppleScriptError,
+)
+from things3_mcp.models import (
+    Todo,
+    Project,
+    Area,
+    Tag,
+    ClassType,
+    TodoCreate,
+    TodoUpdate,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -511,7 +522,9 @@ class Things3API:
         result_id = self.orchestrator.execute_command(command, return_raw=True)
 
         if not result_id or result_id != todo_id:
-            raise AppleScriptError(f"Failed to update todo - unexpected result: {result_id}")
+            raise AppleScriptError(
+                f"Failed to update todo - unexpected result: {result_id}"
+            )
 
         # Fetch and return the updated todo
         updated_todo = self.get_todo(todo_id)
