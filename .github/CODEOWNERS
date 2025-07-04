@@ -1,0 +1,20 @@
+# CODEOWNERS for things3-applescript-mcp
+# This file defines who is responsible for code in this repository.
+# These owners will be automatically requested for review when someone opens a pull request.
+
+# Global owners
+* @haranrk
+
+# Python source files
+/src/ @haranrk
+
+# Documentation
+*.md @haranrk
+/docs/ @haranrk
+
+# Configuration files
+pyproject.toml @haranrk
+uv.lock @haranrk
+
+# GitHub specific files
+/.github/ @haranrk
