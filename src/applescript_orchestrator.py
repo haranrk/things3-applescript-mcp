@@ -1,32 +1,32 @@
 #!/usr/bin/env python3
 """
-Generic AppleScript Orchestrator
+AppleScript Orchestrator - Refactored to use modular architecture.
 
-This module handles the execution of AppleScript commands for any macOS application.
-It provides a clean API for executing AppleScript commands and parsing their results.
+This module now serves as a facade that uses the new modular AppleScript
+infrastructure while maintaining backward compatibility.
 """
 
-import subprocess
-import json
 import logging
-from typing import Any, Dict, List
+from typing import Any
 from datetime import date, datetime
+
+from things3_mcp.applescript import (
+    AppleScriptEngine,
+    AppleScriptError,
+    ParserChain,
+    PythonToAppleScriptConverter,
+)
+from things3_mcp.things3 import Things3Orchestrator
 
 logger = logging.getLogger(__name__)
 
 
-class AppleScriptError(Exception):
-    """Exception raised when an AppleScript execution fails."""
-
-    pass
-
-
 class AppleScriptOrchestrator:
     """
-    Generic orchestrator for executing AppleScript commands.
+    Orchestrator for executing AppleScript commands.
 
-    This class provides methods for constructing and executing AppleScript
-    commands to interact with any macOS application.
+    This class now uses the modular architecture internally while
+    maintaining the same public interface for backward compatibility.
     """
 
     def __init__(self, app_name: str):
@@ -37,6 +37,19 @@ class AppleScriptOrchestrator:
             app_name: The name of the macOS application to interact with.
         """
         self.app_name = app_name
+
+        # Use specialized orchestrator for Things3
+        if app_name == "Things3":
+            self._impl = Things3Orchestrator()
+            self._engine = self._impl.engine
+            self._converter = self._impl.converter
+            self._parser = self._impl.parser_chain
+        else:
+            # Generic implementation for other apps
+            self._impl = None
+            self._engine = AppleScriptEngine()
+            self._converter = PythonToAppleScriptConverter()
+            self._parser = ParserChain()
 
     def _execute_script(self, script: str) -> str:
         """
@@ -52,17 +65,10 @@ class AppleScriptOrchestrator:
             AppleScriptError: If the AppleScript execution fails.
         """
         try:
-            logger.debug(f"Executing AppleScript: {script}")
-            result = subprocess.run(
-                ["osascript", "-s", "s", "-e", script],
-                capture_output=True,
-                text=True,
-                check=True,
-            )
-            return result.stdout.strip()
-        except subprocess.CalledProcessError as e:
-            logger.error(f"AppleScript execution failed: {e.stderr}")
-            raise AppleScriptError(f"AppleScript execution failed: {e.stderr}")
+            return self._engine.execute_structured(script)
+        except Exception as e:
+            logger.error(f"AppleScript execution failed: {e}")
+            raise AppleScriptError(str(e))
 
     def _execute_script_without_structured_output(self, script: str) -> str:
         """
@@ -78,17 +84,10 @@ class AppleScriptOrchestrator:
             AppleScriptError: If the AppleScript execution fails.
         """
         try:
-            logger.debug(f"Executing AppleScript (no structured output): {script}")
-            result = subprocess.run(
-                ["osascript", "-e", script],
-                capture_output=True,
-                text=True,
-                check=True,
-            )
-            return result.stdout.strip()
-        except subprocess.CalledProcessError as e:
-            logger.error(f"AppleScript execution failed: {e.stderr}")
-            raise AppleScriptError(f"AppleScript execution failed: {e.stderr}")
+            return self._engine.execute(script)
+        except Exception as e:
+            logger.error(f"AppleScript execution failed: {e}")
+            raise AppleScriptError(str(e))
 
     def _build_tell_block(self, commands: str) -> str:
         """
@@ -141,221 +140,7 @@ class AppleScriptOrchestrator:
         Returns:
             The parsed result, converted to appropriate Python types.
         """
-        if not result:
-            return None
-
-        # Try parsing as JSON first
-        try:
-            return json.loads(result)
-        except json.JSONDecodeError:
-            pass
-
-        # Handle structured AppleScript records (from -s s flag)
-        if result.startswith("{{") and result.endswith("}}"):
-            return self._parse_structured_records(result)
-        elif result.startswith("{") and ":" in result:
-            return self._parse_single_structured_record(result)
-
-        # Handle boolean values
-        if result.lower() == "true":
-            return True
-        elif result.lower() == "false":
-            return False
-
-        # Handle numeric values
-        try:
-            if "." in result:
-                return float(result)
-            else:
-                return int(result)
-        except ValueError:
-            pass
-
-        # Return as string
-        return result
-
-    def _parse_structured_records(self, result: str) -> List[Dict[str, Any]]:
-        """
-        Parse structured AppleScript records (array format) into Python dictionaries.
-
-        Args:
-            result: Raw structured AppleScript output from -s s flag.
-
-        Returns:
-            List of dictionaries representing the records.
-        """
-        # Remove outer braces
-        content = result[2:-2]  # Remove {{ and }}
-
-        # Simple approach: split on "}, {" pattern
-        record_strings = content.split("}, {")
-
-        records = []
-        for i, record_str in enumerate(record_strings):
-            # Add back the braces that were removed by split
-            if i == 0:
-                # First record: add closing brace
-                full_record = "{" + record_str + "}"
-            elif i == len(record_strings) - 1:
-                # Last record: add opening brace
-                full_record = "{" + record_str + "}"
-            else:
-                # Middle records: add both braces
-                full_record = "{" + record_str + "}"
-
-            record = self._parse_single_structured_record(full_record)
-            if record:
-                records.append(record)
-
-        return records
-
-    def _parse_single_structured_record(self, record_str: str) -> Dict[str, Any]:
-        """
-        Parse a single structured AppleScript record into a Python dictionary.
-
-        Args:
-            record_str: String representation of a single structured record.
-
-        Returns:
-            Dictionary representation of the record.
-        """
-        record = {}
-
-        # Remove outer braces
-        content = record_str.strip()[1:-1]  # Remove { and }
-
-        # Parse key-value pairs
-        pairs = self._split_record_pairs(content)
-
-        for pair in pairs:
-            if ":" not in pair:
-                continue
-
-            # Find the first colon that's not inside quotes
-            colon_pos = self._find_key_value_separator(pair)
-            if colon_pos == -1:
-                continue
-
-            key = pair[:colon_pos].strip()
-            value = pair[colon_pos + 1 :].strip()
-
-            # Parse the value
-            parsed_value = self._parse_structured_value(value)
-            record[key] = parsed_value
-
-        return record
-
-    def _split_record_pairs(self, content: str) -> List[str]:
-        """Split record content into key-value pairs."""
-        pairs = []
-        current_pair = ""
-        depth = 0
-        in_string = False
-        escape_next = False
-
-        for char in content:
-            if escape_next:
-                escape_next = False
-                current_pair += char
-                continue
-
-            if char == "\\":
-                escape_next = True
-                current_pair += char
-                continue
-
-            if char == '"':
-                in_string = not in_string
-            elif not in_string:
-                if char in "({":
-                    depth += 1
-                elif char in ")}":
-                    depth -= 1
-                elif char == "," and depth == 0:
-                    pairs.append(current_pair.strip())
-                    current_pair = ""
-                    continue
-
-            current_pair += char
-
-        if current_pair.strip():
-            pairs.append(current_pair.strip())
-
-        return pairs
-
-    def _find_key_value_separator(self, pair: str) -> int:
-        """Find the colon that separates key from value."""
-        in_string = False
-        escape_next = False
-
-        for i, char in enumerate(pair):
-            if escape_next:
-                escape_next = False
-                continue
-
-            if char == "\\":
-                escape_next = True
-                continue
-
-            if char == '"':
-                in_string = not in_string
-            elif not in_string and char == ":":
-                return i
-
-        return -1
-
-    def _parse_structured_value(self, value_str: str) -> Any:
-        """Parse a structured AppleScript value."""
-        value_str = value_str.strip()
-
-        # Handle missing value
-        if value_str == "missing value":
-            return None
-
-        # Handle boolean values
-        if value_str.lower() == "true":
-            return True
-        elif value_str.lower() == "false":
-            return False
-
-        # Handle quoted strings
-        if value_str.startswith('"') and value_str.endswith('"'):
-            return value_str[1:-1]  # Remove quotes
-
-        # Handle date values
-        if value_str.startswith('date "') and value_str.endswith('"'):
-            return value_str[6:-1]  # Remove 'date "' and '"'
-
-        # Handle object references (project id, area id, etc.)
-        if " id " in value_str and " of application " in value_str:
-            # Extract just the ID part
-            if value_str.startswith('project id "'):
-                end_quote = value_str.find('"', 12)
-                if end_quote != -1:
-                    return f"project id {value_str[12:end_quote]}"
-            elif value_str.startswith('area id "'):
-                end_quote = value_str.find('"', 9)
-                if end_quote != -1:
-                    return f"area id {value_str[9:end_quote]}"
-            return value_str.split(" of application ")[
-                0
-            ]  # Remove application reference
-
-        # Handle numeric values
-        try:
-            if "." in value_str:
-                return float(value_str)
-            else:
-                return int(value_str)
-        except ValueError:
-            pass
-
-        # Handle class values
-        if value_str.startswith("selected to do"):
-            return "selected to do"
-
-        # Return as string
-        return value_str
+        return self._parser.parse(result)
 
     def execute_command(self, command: str, return_raw: bool = False) -> Any:
         """
@@ -371,15 +156,23 @@ class AppleScriptOrchestrator:
         Raises:
             AppleScriptError: If the AppleScript execution fails.
         """
-        script = self._build_tell_block(command)
+        # Delegate to Things3Orchestrator if available
+        if self._impl:
+            return self._impl.execute_command(command, return_raw)
 
-        # For creation commands, don't use structured output to avoid syntax issues
-        if return_raw or "make new to do" in command:
+        # Otherwise use generic implementation
+        if command.startswith("tell application"):
+            script = command
+        else:
+            script = self._build_tell_block(command)
+
+        # Determine which execution method to use
+        if return_raw or "make new to do" in command or "return " in command:
             result = self._execute_script_without_structured_output(script)
-            return result
         else:
             result = self._execute_script(script)
-            return result if return_raw else self._parse_result(result)
+
+        return result if return_raw else self._parse_result(result)
 
     def execute_raw_script(self, script: str, return_raw: bool = False) -> Any:
         """
@@ -436,6 +229,229 @@ class AppleScriptOrchestrator:
 
         return "{" + ", ".join(properties) + "}"
 
+    def _extract_data(self, data_obj) -> dict:
+        """Extract data dict from TodoCreate/TodoUpdate object or dict.
+
+        For updates, we need to preserve None values to handle clearing operations.
+        """
+        if hasattr(data_obj, "model_dump"):
+            # For updates, preserve None values that were explicitly set
+            if (
+                hasattr(data_obj, "__class__")
+                and "Update" in data_obj.__class__.__name__
+            ):
+                # This is an update object - preserve None values to handle clearing
+                all_data = data_obj.model_dump(exclude_none=False)
+                # Only include fields that were explicitly set (not just defaults)
+                explicitly_set = {
+                    k: v
+                    for k, v in all_data.items()
+                    if getattr(data_obj, k) is not None
+                    or k in data_obj.model_fields_set
+                }
+                return explicitly_set
+            else:
+                # This is a create object - exclude None values as before
+                return data_obj.model_dump(exclude_none=True)
+        else:
+            # For dicts, include None values (they were explicitly set)
+            return dict(data_obj)
+
+    def _set_todo_dates(self, todo_ref: str, data: dict) -> list:
+        """Generate AppleScript commands for setting todo dates."""
+        commands = []
+
+        # Set due date
+        if "due_date" in data:
+            if data["due_date"]:
+                date_str = self._format_date_for_applescript(data["due_date"])
+                if date_str:
+                    commands.append(f"set due date of {todo_ref} to {date_str}")
+            else:
+                # Clear due date by deleting the property
+                commands.append(f"delete due date of {todo_ref}")
+
+        # Note: deadline is not supported for todos, only for projects
+        # Skip deadline setting for todos
+
+        # Note: start_date is not supported for todos, only for projects
+        # Skip start_date setting for todos
+
+        return commands
+
+    def _set_todo_scheduling(self, todo_ref: str, data: dict) -> list:
+        """Generate AppleScript commands for todo scheduling (when)."""
+        commands = []
+
+        if "when" in data:
+            when_value = data["when"].lower()
+            if when_value == "tomorrow":
+                commands.append(f'move {todo_ref} to list "Today"')
+                commands.append(
+                    f"set due date of {todo_ref} to (current date) + (1 * days)"
+                )
+            elif when_value in ["today", "upcoming", "anytime", "someday"]:
+                list_name = when_value.capitalize()
+                commands.append(f'move {todo_ref} to list "{list_name}"')
+
+        return commands
+
+    def _set_todo_project(self, todo_ref: str, data: dict) -> list:
+        """Generate AppleScript commands for project assignment."""
+        commands = []
+
+        if "project" in data:
+            project_ref = data["project"]
+            if project_ref:
+                if project_ref.startswith("project id "):
+                    # Reference by ID
+                    project_id = project_ref.replace("project id ", "")
+                    commands.append(f'move {todo_ref} to project id "{project_id}"')
+                else:
+                    # Reference by name
+                    commands.append(f'move {todo_ref} to project "{project_ref}"')
+            else:
+                # Remove from project (move to inbox)
+                commands.append(f'move {todo_ref} to list "Inbox"')
+
+        return commands
+
+    def _set_todo_area(self, todo_ref: str, data: dict) -> list:
+        """Generate AppleScript commands for area assignment."""
+        commands = []
+
+        if "area" in data:
+            area_ref = data["area"]
+            if area_ref:
+                if area_ref.startswith("area id "):
+                    # Reference by ID
+                    area_id = area_ref.replace("area id ", "")
+                    commands.append(f'set area of {todo_ref} to area id "{area_id}"')
+                else:
+                    # Reference by name
+                    commands.append(f'set area of {todo_ref} to area "{area_ref}"')
+            else:
+                commands.append(f"set area of {todo_ref} to missing value")
+
+        return commands
+
+    def _set_todo_tags(self, todo_ref: str, data: dict) -> list:
+        """Generate AppleScript commands for tag management."""
+        commands = []
+
+        if "tags" in data:
+            if data["tags"]:
+                tags_str = ", ".join(data["tags"])
+                tags_value = self._to_applescript_value(tags_str)
+                commands.append(f"set tag names of {todo_ref} to {tags_value}")
+            else:
+                commands.append(f'set tag names of {todo_ref} to ""')
+
+        return commands
+
+    def _set_todo_status(self, todo_ref: str, data: dict) -> list:
+        """Generate AppleScript commands for status changes."""
+        commands = []
+
+        if "status" in data:
+            status = data["status"]
+            if status == "completed":
+                commands.append(f"set completion date of {todo_ref} to (current date)")
+            elif status == "canceled":
+                commands.append(
+                    f"set cancellation date of {todo_ref} to (current date)"
+                )
+            elif status == "open":
+                # Note: Things 3 doesn't allow directly setting completion/cancellation dates to missing value
+                # Instead, we rely on Things 3's built-in behavior to handle reopening todos
+                # The status change will be reflected when we fetch the updated todo
+                pass
+
+        return commands
+
+    def _set_todo_basic_props(self, todo_ref: str, data: dict) -> list:
+        """Generate AppleScript commands for basic properties (name, notes)."""
+        commands = []
+
+        if "name" in data:
+            name_value = self._to_applescript_value(data["name"])
+            commands.append(f"set name of {todo_ref} to {name_value}")
+
+        if "notes" in data:
+            notes_value = self._to_applescript_value(data["notes"])
+            commands.append(f"set notes of {todo_ref} to {notes_value}")
+
+        return commands
+
+    def _add_todo_checklist(self, todo_ref: str, data: dict) -> list:
+        """Generate AppleScript commands for checklist items (create only)."""
+        commands = []
+
+        if "checklist" in data and data["checklist"]:
+            for item in data["checklist"]:
+                if isinstance(item, dict) and "name" in item:
+                    item_name = self._to_applescript_value(item["name"])
+                    commands.append(
+                        f"tell {todo_ref} to make new checklist item with properties {{name:{item_name}}}"
+                    )
+                elif isinstance(item, str):
+                    item_name = self._to_applescript_value(item)
+                    commands.append(
+                        f"tell {todo_ref} to make new checklist item with properties {{name:{item_name}}}"
+                    )
+
+        return commands
+
+    def _build_todo_commands(self, todo_ref: str, data: dict, operation: str) -> list:
+        """
+        Generate AppleScript commands for todo properties.
+
+        Args:
+            todo_ref: Reference to the todo (e.g. "newTodo" or 'to do id "ABC123"')
+            data: Dictionary of properties to set
+            operation: "create" or "update"
+
+        Returns:
+            List of AppleScript command strings
+        """
+        commands = []
+
+        # For updates, set basic properties first
+        if operation == "update":
+            commands.extend(self._set_todo_basic_props(todo_ref, data))
+            commands.extend(self._set_todo_status(todo_ref, data))
+
+        # Set dates (both create and update)
+        commands.extend(self._set_todo_dates(todo_ref, data))
+
+        # Set tags (both create and update)
+        commands.extend(self._set_todo_tags(todo_ref, data))
+
+        # Handle scheduling/when (both create and update)
+        commands.extend(self._set_todo_scheduling(todo_ref, data))
+
+        # Handle project assignment (both create and update)
+        commands.extend(self._set_todo_project(todo_ref, data))
+
+        # Handle area assignment (both create and update)
+        commands.extend(self._set_todo_area(todo_ref, data))
+
+        # Add checklist items (create only)
+        if operation == "create":
+            commands.extend(self._add_todo_checklist(todo_ref, data))
+
+        return commands
+
+    def _wrap_applescript_commands(self, commands: list) -> str:
+        """Wrap commands in AppleScript tell block."""
+        if not commands:
+            return ""
+
+        command_block = "\n    ".join(commands)
+        return f'''tell application "{self.app_name}"
+    {command_block}
+end tell'''
+
     def _format_date_for_applescript(self, date_value) -> str:
         """
         Format a Python date/datetime for AppleScript.
@@ -489,77 +505,53 @@ class AppleScriptOrchestrator:
         Returns:
             AppleScript command to create the todo
         """
+        # Delegate to Things3Orchestrator if available
+        if self._impl:
+            data = self._extract_data(todo_data)
+            command = self._impl.todo_builder.create_todo(data)
+            return command.build()
+
+        # Fallback to legacy implementation
         properties = self._encode_todo_properties(todo_data)
-        command = f"set newTodo to make new to do with properties {properties}\n"
+        data = self._extract_data(todo_data)
 
-        # Handle properties that need to be set after creation
-        if hasattr(todo_data, "model_dump"):
-            data = todo_data.model_dump(exclude_none=True)
-        else:
-            data = {k: v for k, v in todo_data.items() if v is not None}
+        commands = [f"set newTodo to make new to do with properties {properties}"]
+        commands.extend(self._build_todo_commands("newTodo", data, "create"))
+        commands.append("return id of newTodo")
 
-        # Set due date after creation
-        if "due_date" in data:
-            date_str = self._format_date_for_applescript(data["due_date"])
-            if date_str:
-                command += f"set due date of newTodo to {date_str}\n"
+        return self._wrap_applescript_commands(commands)
 
-        # Set deadline after creation
-        if "deadline" in data:
-            date_str = self._format_date_for_applescript(data["deadline"])
-            if date_str:
-                command += f"set deadline of newTodo to {date_str}\n"
+    def update_todo_command(self, todo_id: str, update_data) -> str:
+        """
+        Generate AppleScript command to update an existing todo.
 
-        # Set start date after creation
-        if "start_date" in data:
-            date_str = self._format_date_for_applescript(data["start_date"])
-            if date_str:
-                command += f"set start date of newTodo to {date_str}\n"
+        Args:
+            todo_id: The ID of the todo to update
+            update_data: TodoUpdate object or dict with update properties
 
-        # Move to specific list/project if specified
-        if "when" in data:
-            when_value = data["when"].lower()
-            if when_value in ["today", "tomorrow", "upcoming", "anytime", "someday"]:
-                if when_value == "tomorrow":
-                    command += 'move newTodo to list "Today"\n'
-                    command += (
-                        "set due date of newTodo to (current date) + (1 * days)\n"
-                    )
-                else:
-                    list_name = when_value.capitalize()
-                    command += f'move newTodo to list "{list_name}"\n'
+        Returns:
+            AppleScript command to update the todo
+        """
+        # Delegate to Things3Orchestrator if available
+        if self._impl:
+            data = self._extract_data(update_data)
+            command = self._impl.todo_builder.update_todo(todo_id, data)
+            return command.build()
 
-        # Set project reference
-        if "project" in data:
-            project_ref = data["project"]
-            if project_ref.startswith("project id "):
-                # Reference by ID
-                project_id = project_ref.replace("project id ", "")
-                command += f'move newTodo to project id "{project_id}"\n'
-            else:
-                # Reference by name
-                command += f'move newTodo to project "{project_ref}"\n'
+        # Fallback to legacy implementation
+        from things3_mcp.models import TodoUpdate
 
-        # Set area reference
-        if "area" in data:
-            area_ref = data["area"]
-            if area_ref.startswith("area id "):
-                # Reference by ID
-                area_id = area_ref.replace("area id ", "")
-                command += f'set area of newTodo to area id "{area_id}"\n'
-            else:
-                # Reference by name
-                command += f'set area of newTodo to area "{area_ref}"\n'
+        if isinstance(update_data, dict):
+            update_data = TodoUpdate(**update_data)
 
-        # Add checklist items after creation
-        if "checklist" in data and data["checklist"]:
-            for item in data["checklist"]:
-                if isinstance(item, dict) and "name" in item:
-                    item_name = self._to_applescript_value(item["name"])
-                    command += f"tell newTodo to make new checklist item with properties {{name:{item_name}}}\n"
-                elif isinstance(item, str):
-                    item_name = self._to_applescript_value(item)
-                    command += f"tell newTodo to make new checklist item with properties {{name:{item_name}}}\n"
+        data = self._extract_data(update_data)
+        todo_ref = f'to do id "{todo_id}"'
 
-        command += "return id of newTodo"
-        return command
+        commands = self._build_todo_commands(todo_ref, data, "update")
+        if not commands:
+            return (
+                f'tell application "{self.app_name}"\n    return "{todo_id}"\nend tell'
+            )
+
+        commands.append(f'return "{todo_id}"')
+        return self._wrap_applescript_commands(commands)

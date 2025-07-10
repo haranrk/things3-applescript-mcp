@@ -11,7 +11,10 @@ import subprocess
 from unittest.mock import patch, MagicMock
 from pathlib import Path
 
-from ..applescript_orchestrator import AppleScriptOrchestrator, AppleScriptError
+from things3_mcp.applescript_orchestrator import (
+    AppleScriptOrchestrator,
+    AppleScriptError,
+)
 
 
 class TestAppleScriptOrchestrator:
@@ -136,89 +139,6 @@ class TestAppleScriptOrchestrator:
         assert "id" in first_todo
         assert "name" in first_todo
         assert "status" in first_todo
-
-    # Test structured value parsing (_parse_structured_value)
-    def test_parse_structured_value_missing(
-        self, orchestrator: AppleScriptOrchestrator
-    ) -> None:
-        """Test parsing missing value."""
-        assert orchestrator._parse_structured_value("missing value") is None
-
-    def test_parse_structured_value_boolean(
-        self, orchestrator: AppleScriptOrchestrator
-    ) -> None:
-        """Test parsing boolean in structured value."""
-        assert orchestrator._parse_structured_value("true") is True
-        assert orchestrator._parse_structured_value("false") is False
-
-    def test_parse_structured_value_quoted_string(
-        self, orchestrator: AppleScriptOrchestrator
-    ) -> None:
-        """Test parsing quoted strings."""
-        assert orchestrator._parse_structured_value('"hello world"') == "hello world"
-        assert orchestrator._parse_structured_value('""') == ""
-
-    def test_parse_structured_value_date(
-        self, orchestrator: AppleScriptOrchestrator
-    ) -> None:
-        """Test parsing date values."""
-        date_str = 'date "Friday, June 20, 2025 at 20:24:30"'
-        assert (
-            orchestrator._parse_structured_value(date_str)
-            == "Friday, June 20, 2025 at 20:24:30"
-        )
-
-    def test_parse_structured_value_object_reference(
-        self, orchestrator: AppleScriptOrchestrator
-    ) -> None:
-        """Test parsing object references."""
-        project_ref = 'project id "ABC123" of application "Things3"'
-        assert orchestrator._parse_structured_value(project_ref) == "project id ABC123"
-
-        area_ref = 'area id "XYZ789" of application "Things3"'
-        assert orchestrator._parse_structured_value(area_ref) == "area id XYZ789"
-
-    def test_parse_structured_value_class(
-        self, orchestrator: AppleScriptOrchestrator
-    ) -> None:
-        """Test parsing class values."""
-        assert (
-            orchestrator._parse_structured_value("selected to do") == "selected to do"
-        )
-
-    # Test key-value pair splitting (_split_record_pairs)
-    def test_split_record_pairs_simple(
-        self, orchestrator: AppleScriptOrchestrator
-    ) -> None:
-        """Test splitting simple key-value pairs."""
-        content = "key1:value1, key2:value2, key3:value3"
-        pairs = orchestrator._split_record_pairs(content)
-        assert pairs == ["key1:value1", "key2:value2", "key3:value3"]
-
-    def test_split_record_pairs_with_quotes(
-        self, orchestrator: AppleScriptOrchestrator
-    ) -> None:
-        """Test splitting pairs with quoted values."""
-        content = 'name:"John, Doe", age:30, city:"New York"'
-        pairs = orchestrator._split_record_pairs(content)
-        assert pairs == ['name:"John, Doe"', "age:30", 'city:"New York"']
-
-    def test_split_record_pairs_nested(
-        self, orchestrator: AppleScriptOrchestrator
-    ) -> None:
-        """Test splitting pairs with nested structures."""
-        content = "simple:value, nested:{a:1, b:2}, another:test"
-        pairs = orchestrator._split_record_pairs(content)
-        assert pairs == ["simple:value", "nested:{a:1, b:2}", "another:test"]
-
-    # Test key-value separator finding (_find_key_value_separator)
-    def test_find_key_value_separator(
-        self, orchestrator: AppleScriptOrchestrator
-    ) -> None:
-        """Test finding colon separator."""
-        assert orchestrator._find_key_value_separator("key:value") == 3
-        assert orchestrator._find_key_value_separator('key:"value:with:colons"') == 3
-        assert orchestrator._find_key_value_separator("no separator") == -1
 
     # Test command execution with mocked subprocess
     @patch("subprocess.run")
