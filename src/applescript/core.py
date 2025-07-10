@@ -10,7 +10,10 @@ import subprocess
 from pathlib import Path
 from typing import List, Optional
 
-from .errors import AppleScriptExecutionError, AppleScriptTimeoutError
+from things3_mcp.applescript.errors import (
+    AppleScriptExecutionError,
+    AppleScriptTimeoutError,
+)
 
 logger = logging.getLogger(__name__)
 

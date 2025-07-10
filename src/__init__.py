@@ -5,6 +5,9 @@ An MCP server that provides access to Things 3, the todo list management applica
 This allows LLM clients to read, update, and create new todos in Things 3.
 """
 
+# Subpackages are now accessible via absolute imports throughout the codebase
+# No need to import them here as they are imported directly where needed
+
 from things3_mcp.applescript_orchestrator import (
     AppleScriptOrchestrator as AppleScriptOrchestrator,
     AppleScriptError as AppleScriptError,

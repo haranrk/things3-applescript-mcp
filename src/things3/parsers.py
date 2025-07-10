@@ -8,7 +8,7 @@ data formats and object references.
 import re
 from typing import Any, Dict, Optional
 
-from ..applescript.parsers import StructuredRecordParser
+from things3_mcp.applescript.parsers import StructuredRecordParser
 
 
 class Things3RecordParser(StructuredRecordParser):

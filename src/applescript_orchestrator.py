@@ -10,19 +10,15 @@ import logging
 from typing import Any
 from datetime import date, datetime
 
-from .applescript import (
+from things3_mcp.applescript import (
     AppleScriptEngine,
-    AppleScriptError as BaseAppleScriptError,
+    AppleScriptError,
     ParserChain,
     PythonToAppleScriptConverter,
 )
-from .things3 import Things3Orchestrator
+from things3_mcp.things3 import Things3Orchestrator
 
 logger = logging.getLogger(__name__)
-
-
-# Re-export AppleScriptError for backward compatibility
-AppleScriptError = BaseAppleScriptError
 
 
 class AppleScriptOrchestrator:
@@ -543,7 +539,7 @@ end tell'''
             return command.build()
 
         # Fallback to legacy implementation
-        from .models import TodoUpdate
+        from things3_mcp.models import TodoUpdate
 
         if isinstance(update_data, dict):
             update_data = TodoUpdate(**update_data)

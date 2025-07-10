@@ -11,7 +11,7 @@ import re
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Union
 
-from .errors import AppleScriptParsingError
+from things3_mcp.applescript.errors import AppleScriptParsingError
 
 logger = logging.getLogger(__name__)
 
@@ -323,9 +323,15 @@ class StructuredRecordParser(ParserStrategy):
         if value_str.startswith('"') and value_str.endswith('"'):
             return value_str[1:-1]
 
-        # Date values
-        if value_str.startswith('date "') and value_str.endswith('"'):
-            return value_str[6:-1]  # Return date string without 'date "' wrapper
+        # Date values - handle various malformed date formats
+        if value_str.startswith('date "'):
+            if value_str.endswith('"}'):
+                return value_str[6:-2]  # Remove 'date "' and '"}'
+            elif value_str.endswith('"'):
+                return value_str[6:-1]  # Remove 'date "' and '"'
+            else:
+                # Missing closing quote - just remove 'date "'
+                return value_str[6:]
 
         # Numeric values
         try:

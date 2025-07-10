@@ -3,12 +3,7 @@ Unit tests for AppleScript parsers.
 """
 
 import pytest
-import sys
-import os
-
-sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-
-from applescript.parsers import (
+from things3_mcp.applescript.parsers import (
     JSONParser,
     PrimitiveParser,
     StructuredRecordParser,
@@ -16,7 +11,7 @@ from applescript.parsers import (
     ListParser,
     ParserChain,
 )
-from applescript.errors import AppleScriptParsingError
+from things3_mcp.applescript.errors import AppleScriptParsingError
 
 
 class TestJSONParser:

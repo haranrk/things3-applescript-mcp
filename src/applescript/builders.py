@@ -5,10 +5,9 @@ This module provides a fluent interface for building AppleScript
 commands in a type-safe and maintainable way.
 """
 
-from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Union
 
-from .converters import PythonToAppleScriptConverter
+from things3_mcp.applescript.converters import PythonToAppleScriptConverter
 
 
 class AppleScriptCommand:
@@ -221,10 +220,9 @@ class AppleScriptCommand:
             return "\n".join(self._commands)
 
 
-class CommandBuilder(ABC):
-    """Abstract base class for specialized command builders."""
+class CommandBuilder:
+    """Base class for specialized command builders."""
 
-    @abstractmethod
     def build_command(self, **kwargs) -> AppleScriptCommand:
         """
         Build a specialized AppleScript command.
@@ -235,7 +233,10 @@ class CommandBuilder(ABC):
         Returns:
             Configured AppleScriptCommand instance
         """
-        pass
+        # Default implementation - subclasses should override
+        raise NotImplementedError(
+            "Subclasses should implement build_command or use specific methods"
+        )
 
 
 class TellBlockBuilder:
