@@ -7,7 +7,7 @@ commands in a type-safe and maintainable way.
 
 from typing import Any, Dict, List, Optional, Union
 
-from things3_mcp.applescript.converters import PythonToAppleScriptConverter
+from applescript.converters import PythonToAppleScriptConverter
 
 
 class AppleScriptCommand:

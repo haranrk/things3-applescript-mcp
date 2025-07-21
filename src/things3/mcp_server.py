@@ -8,8 +8,8 @@ from typing import List, Optional, Dict, Any
 from fastmcp import FastMCP
 from pydantic import Field
 
-from things3_mcp.things3_api import Things3API
-from things3_mcp.models import TodoCreate, TodoUpdate, ProjectCreate, ProjectUpdate
+from things3.things3_api import Things3API
+from things3.models import TodoCreate, TodoUpdate, ProjectCreate, ProjectUpdate
 
 # Create the MCP server
 mcp = FastMCP(name="things3-mcp")

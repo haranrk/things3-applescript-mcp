@@ -11,7 +11,7 @@ import re
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Union
 
-from things3_mcp.applescript.errors import AppleScriptParsingError
+from applescript.errors import AppleScriptParsingError
 
 logger = logging.getLogger(__name__)
 

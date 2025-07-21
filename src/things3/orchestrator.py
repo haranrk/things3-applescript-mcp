@@ -9,22 +9,22 @@ parsers and converters.
 import logging
 from typing import Any, Dict, List, Optional, Union
 
-from things3_mcp.applescript.core import AppleScriptEngine
-from things3_mcp.applescript.parsers import (
+from applescript.core import AppleScriptEngine
+from applescript.parsers import (
     ParserChain,
     PrimitiveParser,
     DateParser,
     ListParser,
 )
-from things3_mcp.applescript.converters import (
+from applescript.converters import (
     PythonToAppleScriptConverter,
     PropertyConverter,
 )
-from things3_mcp.applescript.builders import AppleScriptCommand
-from things3_mcp.applescript.errors import AppleScriptError
+from applescript.builders import AppleScriptCommand
+from applescript.errors import AppleScriptError
 
-from things3_mcp.things3.parsers import Things3RecordParser, Things3PropertyNormalizer
-from things3_mcp.things3.command_builders import (
+from things3.parsers import Things3RecordParser, Things3PropertyNormalizer
+from things3.command_builders import (
     TodoCommandBuilder,
     ProjectCommandBuilder,
     AreaCommandBuilder,

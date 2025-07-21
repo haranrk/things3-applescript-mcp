@@ -10,7 +10,7 @@ import subprocess
 from pathlib import Path
 from typing import List, Optional
 
-from things3_mcp.applescript.errors import (
+from applescript.errors import (
     AppleScriptExecutionError,
     AppleScriptTimeoutError,
 )

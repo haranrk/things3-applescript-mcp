@@ -539,7 +539,7 @@ end tell'''
             return command.build()
 
         # Fallback to legacy implementation
-        from things3_mcp.models import TodoUpdate
+        from things3.models import TodoUpdate
 
         if isinstance(update_data, dict):
             update_data = TodoUpdate(**update_data)
@@ -600,7 +600,7 @@ end tell'''
             return command.build()
 
         # Fallback to legacy implementation
-        from things3_mcp.models import ProjectUpdate
+        from things3.models import ProjectUpdate
 
         if isinstance(update_data, dict):
             update_data = ProjectUpdate(**update_data)

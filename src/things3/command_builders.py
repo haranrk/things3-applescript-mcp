@@ -8,8 +8,8 @@ specific AppleScript commands using the generic builder infrastructure.
 from datetime import date, datetime
 from typing import Any, Dict, List, Optional, Union
 
-from things3_mcp.applescript.builders import AppleScriptCommand, CommandBuilder
-from things3_mcp.applescript.converters import (
+from applescript.builders import AppleScriptCommand, CommandBuilder
+from applescript.converters import (
     PythonToAppleScriptConverter,
     AppleScriptReferenceConverter,
 )

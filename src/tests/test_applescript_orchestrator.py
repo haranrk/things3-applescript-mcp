@@ -11,7 +11,7 @@ import subprocess
 from unittest.mock import patch, MagicMock
 from pathlib import Path
 
-from things3_mcp.applescript_orchestrator import (
+from things3.applescript_orchestrator import (
     AppleScriptOrchestrator,
     AppleScriptError,
 )
