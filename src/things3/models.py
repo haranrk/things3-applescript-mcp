@@ -145,3 +145,21 @@ class TodoUpdate(BaseModel):
     area: Optional[str] = None
     when: Optional[str] = None
     checklist: Optional[List[Dict[str, str]]] = None
+
+
+class ProjectCreate(ProjectBase):
+    """Model for creating a new Project."""
+
+    pass
+
+
+class ProjectUpdate(BaseModel):
+    """Model for updating an existing Project."""
+
+    name: Optional[str] = None
+    notes: Optional[str] = None
+    status: Optional[Status] = None
+    tags: Optional[List[str]] = None
+    area: Optional[str] = None
+    when: Optional[str] = None
+    deadline: Optional[date] = None

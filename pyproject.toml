@@ -22,13 +22,4 @@ dev = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src"]
-
-[tool.hatch.build]
-sources = ["src"]
-
-[tool.hatch.metadata]
-allow-direct-references = true
-
-[tool.hatch.build.targets.wheel.force-include]
-"src" = "things3_mcp"
+packages = ["src/applescript", "src/things3"]

@@ -11,11 +11,10 @@ from datetime import datetime
 from typing import List, Optional, Dict, Any
 from dateutil import parser as date_parser
 
-from things3_mcp.applescript_orchestrator import (
+from things3.applescript_orchestrator import (
     AppleScriptOrchestrator,
-    AppleScriptError,
 )
-from things3_mcp.models import (
+from things3.models import (
     Todo,
     Project,
     Area,
@@ -23,6 +22,8 @@ from things3_mcp.models import (
     ClassType,
     TodoCreate,
     TodoUpdate,
+    ProjectCreate,
+    ProjectUpdate,
 )
 
 logger = logging.getLogger(__name__)
@@ -138,8 +139,8 @@ class Things3API:
         Returns:
             Project object
         """
-        # Parse deadline as date only
-        deadline = self._parse_date(props.get("deadline"))
+        # Parse deadline as date only (Projects use "due date" property)
+        deadline = self._parse_date(props.get("due date"))
 
         return Project(
             id=props["id"],
@@ -534,3 +535,68 @@ class Things3API:
             )
 
         return updated_todo
+
+    def create_project(self, project_data: ProjectCreate) -> Project:
+        """
+        Create a new project in Things 3.
+
+        Args:
+            project_data: ProjectCreate object with project properties
+
+        Returns:
+            The created Project object
+
+        Raises:
+            AppleScriptError: If the AppleScript execution fails
+        """
+        # Generate the AppleScript command using the orchestrator
+        command = self.orchestrator.create_project_command(project_data)
+
+        # Execute the command to create the project
+        project_id = self.orchestrator.execute_command(command, return_raw=True)
+
+        if not project_id:
+            raise AppleScriptError("Failed to create project - no ID returned")
+
+        # Fetch and return the created project
+        created_project = self.get_project(project_id)
+        if not created_project:
+            raise AppleScriptError(
+                f"Failed to retrieve created project with ID: {project_id}"
+            )
+
+        return created_project
+
+    def update_project(self, project_id: str, update_data: ProjectUpdate) -> Project:
+        """
+        Update an existing project in Things 3.
+
+        Args:
+            project_id: The ID of the project to update
+            update_data: ProjectUpdate object with update properties
+
+        Returns:
+            The updated Project object
+
+        Raises:
+            AppleScriptError: If the AppleScript execution fails
+        """
+        # Generate the AppleScript command using the orchestrator
+        command = self.orchestrator.update_project_command(project_id, update_data)
+
+        # Execute the command to update the project
+        result_id = self.orchestrator.execute_command(command, return_raw=True)
+
+        if not result_id or result_id != project_id:
+            raise AppleScriptError(
+                f"Failed to update project - unexpected result: {result_id}"
+            )
+
+        # Fetch and return the updated project
+        updated_project = self.get_project(project_id)
+        if not updated_project:
+            raise AppleScriptError(
+                f"Failed to retrieve updated project with ID: {project_id}"
+            )
+
+        return updated_project

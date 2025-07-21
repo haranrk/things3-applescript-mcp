@@ -544,7 +544,7 @@ class TestThings3APIParsingMethods:
             "activation date": "Tuesday, June 2, 2025 at 08:00:00",
             "tag names": "quarterly, high-priority",
             "area": "area id WORK123",
-            "deadline": "Monday, June 30, 2025 at 17:00:00",
+            "due date": "Monday, June 30, 2025 at 17:00:00",
             "contact": "team@company.com",
             "class": "project",
         }

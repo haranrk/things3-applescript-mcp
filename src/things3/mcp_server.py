@@ -9,7 +9,7 @@ from fastmcp import FastMCP
 from pydantic import Field
 
 from things3_mcp.things3_api import Things3API
-from things3_mcp.models import TodoCreate, TodoUpdate
+from things3_mcp.models import TodoCreate, TodoUpdate, ProjectCreate, ProjectUpdate
 
 # Create the MCP server
 mcp = FastMCP(name="things3-mcp")
@@ -260,6 +260,126 @@ async def get_projects_by_area(
     """Get projects belonging to a specific area."""
     projects = api.get_projects_by_area(area_id)
     return [project.model_dump() for project in projects]
+
+
+@mcp.tool
+async def create_project(
+    name: str = Field(description="The title/name of the project"),
+    notes: Optional[str] = Field(
+        default=None, description="Notes or description for the project"
+    ),
+    deadline: Optional[str] = Field(
+        default=None, description="Deadline in YYYY-MM-DD format"
+    ),
+    tags: Optional[List[str]] = Field(
+        default=None, description="List of tag names to apply to the project"
+    ),
+    area_id: Optional[str] = Field(
+        default=None, description="ID of the area to assign the project to"
+    ),
+    when: Optional[str] = Field(
+        default=None,
+        description="When to schedule: 'anytime', 'someday', etc.",
+    ),
+) -> Dict[str, Any]:
+    """Create a new project in Things 3.
+
+    Creates a new project with the specified properties and returns the created project.
+    """
+    # Convert date strings to date objects if provided
+    from datetime import datetime
+
+    parsed_deadline = None
+
+    if deadline:
+        parsed_deadline = datetime.fromisoformat(deadline).date()
+
+    # Build area reference if provided
+    area_ref = f"area id {area_id}" if area_id else None
+
+    # Create ProjectCreate object
+    project_data = ProjectCreate(
+        name=name,
+        notes=notes,
+        deadline=parsed_deadline,
+        tags=tags,
+        area=area_ref,
+        when=when,
+    )
+
+    # Create the project
+    created_project = api.create_project(project_data)
+    return created_project.model_dump()
+
+
+@mcp.tool
+async def update_project(
+    project_id: str = Field(description="The ID of the project to update"),
+    name: Optional[str] = Field(
+        default=None, description="New title/name for the project"
+    ),
+    notes: Optional[str] = Field(
+        default=None, description="New notes or description for the project"
+    ),
+    deadline: Optional[str] = Field(
+        default=None, description="New deadline in YYYY-MM-DD format"
+    ),
+    tags: Optional[List[str]] = Field(
+        default=None, description="New list of tag names to apply to the project"
+    ),
+    area_id: Optional[str] = Field(
+        default=None, description="ID of the area to assign the project to"
+    ),
+    when: Optional[str] = Field(
+        default=None,
+        description="When to schedule: 'anytime', 'someday', etc.",
+    ),
+    status: Optional[str] = Field(
+        default=None, description="Status: 'open', 'completed', or 'canceled'"
+    ),
+) -> Dict[str, Any]:
+    """Update an existing project in Things 3.
+
+    Updates the specified project with the provided properties and returns the updated project.
+    Only provided fields will be updated; others remain unchanged.
+    """
+    # Convert date strings to date objects if provided
+    from datetime import datetime
+
+    parsed_deadline = None
+
+    if deadline is not None:
+        if deadline:  # Non-empty string
+            parsed_deadline = datetime.fromisoformat(deadline).date()
+        # Empty string or None will clear the date
+
+    # Build area reference if provided
+    area_ref = None
+    if area_id is not None:
+        area_ref = f"area id {area_id}" if area_id else None
+
+    # Create ProjectUpdate object with only provided fields
+    update_fields = {}
+    if name is not None:
+        update_fields["name"] = name
+    if notes is not None:
+        update_fields["notes"] = notes
+    if deadline is not None:
+        update_fields["deadline"] = parsed_deadline
+    if tags is not None:
+        update_fields["tags"] = tags
+    if area_ref is not None:
+        update_fields["area"] = area_ref
+    if when is not None:
+        update_fields["when"] = when
+    if status is not None:
+        update_fields["status"] = status
+
+    update_data = ProjectUpdate(**update_fields)
+
+    # Update the project
+    updated_project = api.update_project(project_id, update_data)
+    return updated_project.model_dump()
 
 
 # Area operations

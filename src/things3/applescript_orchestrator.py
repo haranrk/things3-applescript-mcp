@@ -10,13 +10,13 @@ import logging
 from typing import Any
 from datetime import date, datetime
 
-from things3_mcp.applescript import (
+from applescript.core import (
     AppleScriptEngine,
     AppleScriptError,
     ParserChain,
     PythonToAppleScriptConverter,
 )
-from things3_mcp.things3 import Things3Orchestrator
+from things3.orchestrator import Things3Orchestrator
 
 logger = logging.getLogger(__name__)
 
@@ -555,3 +555,237 @@ end tell'''
 
         commands.append(f'return "{todo_id}"')
         return self._wrap_applescript_commands(commands)
+
+    def create_project_command(self, project_data) -> str:
+        """
+        Generate AppleScript command to create a project.
+
+        Args:
+            project_data: ProjectCreate object or dict with project properties
+
+        Returns:
+            AppleScript command to create the project
+        """
+        # Delegate to Things3Orchestrator if available
+        if self._impl:
+            data = self._extract_data(project_data)
+            command = self._impl.project_builder.create_project(data)
+            return command.build()
+
+        # Fallback to legacy implementation
+        properties = self._encode_project_properties(project_data)
+        data = self._extract_data(project_data)
+
+        commands = [f"set newProject to make new project with properties {properties}"]
+        commands.extend(self._build_project_commands("newProject", data, "create"))
+        commands.append("return id of newProject")
+
+        return self._wrap_applescript_commands(commands)
+
+    def update_project_command(self, project_id: str, update_data) -> str:
+        """
+        Generate AppleScript command to update an existing project.
+
+        Args:
+            project_id: The ID of the project to update
+            update_data: ProjectUpdate object or dict with update properties
+
+        Returns:
+            AppleScript command to update the project
+        """
+        # Delegate to Things3Orchestrator if available
+        if self._impl:
+            data = self._extract_data(update_data)
+            command = self._impl.project_builder.update_project(project_id, data)
+            return command.build()
+
+        # Fallback to legacy implementation
+        from things3_mcp.models import ProjectUpdate
+
+        if isinstance(update_data, dict):
+            update_data = ProjectUpdate(**update_data)
+
+        data = self._extract_data(update_data)
+        project_ref = f'project id "{project_id}"'
+
+        commands = self._build_project_commands(project_ref, data, "update")
+        if not commands:
+            return f'tell application "{self.app_name}"\n    return "{project_id}"\nend tell'
+
+        commands.append(f'return "{project_id}"')
+        return self._wrap_applescript_commands(commands)
+
+    def _encode_project_properties(self, project_data) -> str:
+        """
+        Convert a ProjectCreate object to AppleScript properties format.
+
+        Args:
+            project_data: ProjectCreate pydantic model or dict with project properties
+
+        Returns:
+            AppleScript properties string for creating a project
+        """
+        if hasattr(project_data, "model_dump"):
+            # Pydantic model
+            data = project_data.model_dump(exclude_none=True)
+        else:
+            # Dictionary
+            data = {k: v for k, v in project_data.items() if v is not None}
+
+        properties = []
+
+        # Required name field
+        if "name" in data:
+            properties.append(f"name:{self._to_applescript_value(data['name'])}")
+
+        # Optional notes
+        if "notes" in data:
+            properties.append(f"notes:{self._to_applescript_value(data['notes'])}")
+
+        # Tags - convert list to comma-separated string
+        if "tags" in data and data["tags"]:
+            tag_names = ", ".join(data["tags"])
+            properties.append(f"tag names:{self._to_applescript_value(tag_names)}")
+
+        return "{" + ", ".join(properties) + "}"
+
+    def _build_properties_record(self, properties: dict) -> str:
+        """Build an AppleScript record from properties dictionary."""
+        if not properties:
+            return "{}"
+
+        items = []
+        for key, value in properties.items():
+            items.append(f"{key}:{value}")
+
+        return "{" + ", ".join(items) + "}"
+
+    def _build_project_commands(
+        self, project_ref: str, data: dict, operation: str
+    ) -> list:
+        """
+        Generate AppleScript commands for project properties.
+
+        Args:
+            project_ref: Reference to the project (e.g. "newProject" or 'project id "ABC123"')
+            data: Dictionary of properties to set
+            operation: "create" or "update"
+
+        Returns:
+            List of AppleScript command strings
+        """
+        commands = []
+
+        # For updates, set basic properties first
+        if operation == "update":
+            commands.extend(self._set_project_basic_props(project_ref, data))
+            commands.extend(self._set_project_status(project_ref, data))
+
+        # Set deadline (both create and update)
+        commands.extend(self._set_project_deadline(project_ref, data))
+
+        # Set tags (both create and update)
+        commands.extend(self._set_project_tags(project_ref, data))
+
+        # Handle scheduling/when (both create and update)
+        commands.extend(self._set_project_scheduling(project_ref, data))
+
+        # Handle area assignment (both create and update)
+        commands.extend(self._set_project_area(project_ref, data))
+
+        return commands
+
+    def _set_project_basic_props(self, project_ref: str, data: dict) -> list:
+        """Generate AppleScript commands for basic project properties (name, notes)."""
+        commands = []
+
+        if "name" in data:
+            name_value = self._to_applescript_value(data["name"])
+            commands.append(f"set name of {project_ref} to {name_value}")
+
+        if "notes" in data:
+            notes_value = self._to_applescript_value(data["notes"])
+            commands.append(f"set notes of {project_ref} to {notes_value}")
+
+        return commands
+
+    def _set_project_status(self, project_ref: str, data: dict) -> list:
+        """Generate AppleScript commands for project status changes."""
+        commands = []
+
+        if "status" in data:
+            status = data["status"]
+            if status == "completed":
+                commands.append(
+                    f"set completion date of {project_ref} to (current date)"
+                )
+            elif status == "canceled":
+                commands.append(
+                    f"set cancellation date of {project_ref} to (current date)"
+                )
+            elif status == "open":
+                # Note: Things 3 doesn't allow directly setting completion/cancellation dates to missing value
+                # The status change will be reflected when we fetch the updated project
+                pass
+
+        return commands
+
+    def _set_project_deadline(self, project_ref: str, data: dict) -> list:
+        """Generate AppleScript commands for setting project deadline."""
+        commands = []
+
+        if "deadline" in data:
+            if data["deadline"]:
+                date_str = self._format_date_for_applescript(data["deadline"])
+                if date_str:
+                    commands.append(f"set deadline of {project_ref} to {date_str}")
+            else:
+                # Clear deadline by deleting the property
+                commands.append(f"delete deadline of {project_ref}")
+
+        return commands
+
+    def _set_project_tags(self, project_ref: str, data: dict) -> list:
+        """Generate AppleScript commands for project tag management."""
+        commands = []
+
+        if "tags" in data:
+            if data["tags"]:
+                tags_str = ", ".join(data["tags"])
+                tags_value = self._to_applescript_value(tags_str)
+                commands.append(f"set tag names of {project_ref} to {tags_value}")
+            else:
+                commands.append(f'set tag names of {project_ref} to ""')
+
+        return commands
+
+    def _set_project_area(self, project_ref: str, data: dict) -> list:
+        """Generate AppleScript commands for project area assignment."""
+        commands = []
+
+        if "area" in data:
+            area_ref = data["area"]
+            if area_ref:
+                if area_ref.startswith("area id "):
+                    # Reference by ID
+                    area_id = area_ref.replace("area id ", "")
+                    commands.append(f'set area of {project_ref} to area id "{area_id}"')
+                else:
+                    # Reference by name
+                    commands.append(f'set area of {project_ref} to area "{area_ref}"')
+            else:
+                commands.append(f"set area of {project_ref} to missing value")
+
+        return commands
+
+    def _set_project_scheduling(self, project_ref: str, data: dict) -> list:
+        """Generate AppleScript commands for project scheduling (when)."""
+        commands = []
+
+        if "when" in data:
+            when_value = data["when"].lower()
+            if when_value in ["anytime", "someday"]:
+                list_name = when_value.capitalize()
+                commands.append(f'move {project_ref} to list "{list_name}"')
+
+        return commands

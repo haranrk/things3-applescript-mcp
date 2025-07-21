@@ -38,24 +38,46 @@ class Things3CommandBuilder(CommandBuilder):
             ]:
                 return date_value.lower()
 
-        # Use converter for date objects
-        return self.converter.convert(date_value)
+        # Use converter for date objects - this already returns unquoted expressions
+        return self.converter._format_date(date_value)
 
     def _format_reference(self, ref: str, ref_type: str) -> Optional[str]:
         """Format an object reference for Things 3."""
         if not ref:
             return None
 
-        # Check if it's already a reference
+        # Check if it's already a properly formatted reference
         if self.ref_converter.is_reference(ref):
-            return ref
+            # Parse to ensure proper formatting
+            parsed_type, identifier, is_by_id = self.ref_converter.parse_reference(ref)
+            if parsed_type and identifier:
+                # Reference is already properly formatted with quotes
+                return ref
 
-        # Check if it's an ID reference
+        # Check if it's an ID reference without proper quotes
         if ref.startswith(f"{ref_type} id "):
-            return ref
+            # Extract the ID part
+            id_part = ref[len(f"{ref_type} id "):]
+            # Ensure the ID is properly quoted
+            if not (id_part.startswith('"') and id_part.endswith('"')):
+                return f'{ref_type} id "{id_part}"'
+            else:
+                return ref
 
         # Otherwise, treat as name reference
         return f'{ref_type} "{ref}"'
+
+    def _build_properties_record(self, properties: Dict[str, Any]) -> str:
+        """Build an AppleScript record from properties."""
+        if not properties:
+            return "{}"
+
+        items = []
+        for key, value in properties.items():
+            value_str = self.converter.convert(value)
+            items.append(f"{key}:{value_str}")
+
+        return "{" + ", ".join(items) + "}"
 
 
 class TodoCommandBuilder(Things3CommandBuilder):
@@ -229,18 +251,6 @@ class TodoCommandBuilder(Things3CommandBuilder):
                 f"with properties {{name:{self.converter.convert(item_name)}}}"
             )
 
-    def _build_properties_record(self, properties: Dict[str, Any]) -> str:
-        """Build an AppleScript record from properties."""
-        if not properties:
-            return "{}"
-
-        items = []
-        for key, value in properties.items():
-            value_str = self.converter.convert(value)
-            items.append(f"{key}:{value_str}")
-
-        return "{" + ", ".join(items) + "}"
-
 
 class ProjectCommandBuilder(Things3CommandBuilder):
     """Builder for Things 3 project-related commands."""
@@ -305,14 +315,14 @@ class ProjectCommandBuilder(Things3CommandBuilder):
         self, cmd: AppleScriptCommand, project_ref: str, data: Dict[str, Any]
     ) -> None:
         """Add commands for setting project properties."""
-        # Deadline
+        # Deadline (Projects use "due date" property, not "deadline")
         if "deadline" in data:
             if data["deadline"]:
                 date_expr = self._format_date(data["deadline"])
                 if date_expr:
-                    cmd.set("deadline", of=project_ref, to=date_expr)
+                    cmd.set("due date", of=project_ref, to=date_expr)
             else:
-                cmd.delete(f"deadline of {project_ref}")
+                cmd.delete(f"due date of {project_ref}")
 
         # Tags
         if "tags" in data:
