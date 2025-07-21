@@ -11,7 +11,7 @@ import re
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Union
 
-from things3_mcp.applescript.errors import AppleScriptParsingError
+from applescript.errors import AppleScriptParsingError
 
 logger = logging.getLogger(__name__)
 
@@ -146,71 +146,35 @@ class StructuredRecordParser(ParserStrategy):
 
     def _parse_multiple_records(self, content: str) -> List[Dict[str, Any]]:
         """Parse multiple structured records."""
+        import re
+        
         # Remove outer braces {{ and }}
         inner = content[2:-2]
 
-        # Split on "}, {" but be careful about nested structures
+        # Split on "}, {" pattern - this is simpler and more reliable 
+        # than complex depth tracking for AppleScript structured format
+        parts = re.split(r'\}, \{', inner)
+        
         records = []
-        current_record = ""
-        depth = 0
-        in_string = False
-        escape_next = False
-
-        i = 0
-        while i < len(inner):
-            char = inner[i]
-
-            if escape_next:
-                escape_next = False
-                current_record += char
-                i += 1
-                continue
-
-            if char == "\\":
-                escape_next = True
-                current_record += char
-                i += 1
-                continue
-
-            if char == '"':
-                in_string = not in_string
-                current_record += char
-            elif not in_string:
-                if char == "{":
-                    depth += 1
-                    current_record += char
-                elif char == "}":
-                    current_record += char
-                    if depth == 0:
-                        # We found the end of a record
-                        records.append(current_record)
-                        current_record = ""
-
-                        # Skip comma and whitespace after record
-                        i += 1
-                        while i < len(inner) and inner[i] in ", \t\n":
-                            i += 1
-                        continue
-                    else:
-                        depth -= 1
-                else:
-                    current_record += char
+        for i, part in enumerate(parts):
+            # Add back the braces that were removed by splitting
+            if i == 0:
+                # First record: add closing brace
+                record = part + "}"
+            elif i == len(parts) - 1:
+                # Last record: add opening brace  
+                record = "{" + part
             else:
-                current_record += char
+                # Middle records: add both braces
+                record = "{" + part + "}"
+                
+            records.append(record)
 
-            i += 1
-
-        # Handle any remaining content
-        if current_record.strip():
-            records.append(current_record)
-
-        # Parse each record by wrapping in braces
+        # Parse each record
         parsed_records = []
         for record in records:
             if record.strip():
-                # Ensure record is properly wrapped
-                wrapped = "{" + record + "}" if not record.startswith("{") else record
-                parsed_records.append(self._parse_single_record(wrapped))
+                parsed_records.append(self._parse_single_record(record))
 
         return parsed_records
 

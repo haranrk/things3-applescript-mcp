@@ -7,8 +7,8 @@ import subprocess
 from unittest.mock import patch, MagicMock
 from pathlib import Path
 
-from things3_mcp.applescript.core import AppleScriptEngine
-from things3_mcp.applescript.errors import (
+from applescript.core import AppleScriptEngine
+from applescript.errors import (
     AppleScriptExecutionError,
     AppleScriptTimeoutError,
 )

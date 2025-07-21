@@ -7,7 +7,7 @@ commands in a type-safe and maintainable way.
 
 from typing import Any, Dict, List, Optional, Union
 
-from things3_mcp.applescript.converters import PythonToAppleScriptConverter
+from applescript.converters import PythonToAppleScriptConverter
 
 
 class AppleScriptCommand:
@@ -63,7 +63,11 @@ class AppleScriptCommand:
         Returns:
             Self for method chaining
         """
-        value_str = self._converter.convert(to)
+        # Handle special case where 'to' value is already an AppleScript expression
+        if isinstance(to, str) and hasattr(self._converter, '_is_applescript_expression') and self._converter._is_applescript_expression(to):
+            value_str = to
+        else:
+            value_str = self._converter.convert(to)
         self._commands.append(f"set {property_name} of {of} to {value_str}")
         return self
 

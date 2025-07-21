@@ -52,6 +52,9 @@ class PythonToAppleScriptConverter:
         elif isinstance(value, (int, float)):
             return str(value)
         elif isinstance(value, str):
+            # Check for special AppleScript expressions that should not be quoted
+            if self._is_applescript_expression(value):
+                return value
             return self._quote_string(value)
         elif isinstance(value, (date, datetime)):
             return self._format_date(value)
@@ -62,6 +65,38 @@ class PythonToAppleScriptConverter:
         else:
             # Fallback: convert to string and quote
             return self._quote_string(str(value))
+
+    def _is_applescript_expression(self, s: str) -> bool:
+        """
+        Check if a string is an AppleScript expression that should not be quoted.
+        
+        This includes:
+        - Date expressions: (current date), (current date) + (N * days)
+        - Object references: area id "ABC", project id "XYZ"
+        - Special values: missing value, current date
+        """
+        s = s.strip()
+        
+        # Date expressions
+        if s == "current date" or s == "(current date)":
+            return True
+        if s.startswith("(current date)") and ("+" in s or "-" in s) and "days" in s:
+            return True
+            
+        # Object references
+        reference_prefixes = [
+            "area id ", "project id ", "tag id ", "to do id ",
+            "area ", "project ", "tag ", "list "
+        ]
+        for prefix in reference_prefixes:
+            if s.startswith(prefix):
+                return True
+                
+        # Special AppleScript values
+        if s in ["missing value", "true", "false"]:
+            return True
+            
+        return False
 
     def _quote_string(self, s: str) -> str:
         """Quote a string for AppleScript."""
