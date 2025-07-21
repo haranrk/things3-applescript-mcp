@@ -9,6 +9,8 @@ and displays them in a beautiful, formatted table.
 import sys
 from pathlib import Path
 from datetime import datetime
+from typing import Dict, List, Optional
+from datetime import date
 
 # Add the src directory to the path so we can import our modules
 src_path = Path(__file__).parent.parent / "src"
@@ -21,9 +23,10 @@ from rich.text import Text
 from rich import box
 
 from things3.things3_api import Things3API
+from things3.models import Todo
 
 
-def format_due_date(due_date):
+def format_due_date(due_date: Optional[date]) -> str:
     """Format due date for display."""
     if not due_date:
         return "[dim]No due date[/dim]"
@@ -37,14 +40,14 @@ def format_due_date(due_date):
         return f"[yellow]{due_date}[/yellow]"
 
 
-def format_tags(tags):
+def format_tags(tags: Optional[List[str]]) -> str:
     """Format tags for display."""
     if not tags:
         return ""
     return " ".join([f"[blue]#{tag}[/blue]" for tag in tags])
 
 
-def extract_id_from_reference(reference):
+def extract_id_from_reference(reference: Optional[str]) -> Optional[str]:
     """Extract ID from Things 3 reference string."""
     if not reference:
         return None
@@ -55,7 +58,7 @@ def extract_id_from_reference(reference):
     return None
 
 
-def get_project_name(api, project_ref, project_cache):
+def get_project_name(api: Things3API, project_ref: Optional[str], project_cache: Dict[str, str]) -> str:
     """Get project name from reference, with caching."""
     if not project_ref:
         return "[dim]No project[/dim]"
@@ -82,7 +85,7 @@ def get_project_name(api, project_ref, project_cache):
     return result
 
 
-def get_area_name(api, area_ref, area_cache):
+def get_area_name(api: Things3API, area_ref: Optional[str], area_cache: Dict[str, str]) -> str:
     """Get area name from reference, with caching."""
     if not area_ref:
         return "[dim]No area[/dim]"
@@ -109,7 +112,7 @@ def get_area_name(api, area_ref, area_cache):
     return result
 
 
-def main():
+def main() -> None:
     """Main function to display today's todos."""
     console = Console()
     
@@ -127,8 +130,8 @@ def main():
         return
     
     # Create caches for projects and areas to avoid repeated API calls
-    project_cache = {}
-    area_cache = {}
+    project_cache: Dict[str, str] = {}
+    area_cache: Dict[str, str] = {}
     
     # Create a table for the todos
     table = Table(

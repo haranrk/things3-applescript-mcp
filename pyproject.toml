@@ -13,11 +13,12 @@ dependencies = [
 ]
 
 [project.scripts]
-things3-mcp-server = "things3_mcp.mcp_server:main"
+things3-mcp-server = "things3.mcp_server:main"
 
 [dependency-groups]
 dev = [
     "ipython>=9.4.0",
+    "mypy>=1.17.0",
     "pytest>=8.4.1",
     "rich>=14.0.0",
     "ruff>=0.12.0",
