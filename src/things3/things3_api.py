@@ -11,9 +11,8 @@ from datetime import datetime
 from typing import List, Optional, Dict, Any
 from dateutil import parser as date_parser
 
-from things3.applescript_orchestrator import (
-    AppleScriptOrchestrator,
-)
+from things3.orchestrator import Things3Orchestrator
+from applescript.errors import AppleScriptError
 from things3.models import (
     Todo,
     Project,
@@ -39,7 +38,7 @@ class Things3API:
 
     def __init__(self):
         """Initialize the Things 3 API."""
-        self.orchestrator = AppleScriptOrchestrator(app_name="Things3")
+        self.orchestrator = Things3Orchestrator()
 
     def _parse_date(self, date_str: Optional[str]) -> Optional[datetime]:
         """
@@ -484,11 +483,14 @@ class Things3API:
         Raises:
             AppleScriptError: If the AppleScript execution fails
         """
-        # Generate the AppleScript command using the orchestrator
-        command = self.orchestrator.create_todo_command(todo_data)
+        # Extract data from the TodoCreate object
+        if hasattr(todo_data, "model_dump"):
+            data = todo_data.model_dump(exclude_none=True)
+        else:
+            data = dict(todo_data)
 
-        # Execute the command to create the todo
-        todo_id = self.orchestrator.execute_command(command, return_raw=True)
+        # Create the todo using the orchestrator
+        todo_id = self.orchestrator.create_todo(data)
 
         if not todo_id:
             raise AppleScriptError("Failed to create todo - no ID returned")
@@ -516,11 +518,22 @@ class Things3API:
         Raises:
             AppleScriptError: If the AppleScript execution fails
         """
-        # Generate the AppleScript command using the orchestrator
-        command = self.orchestrator.update_todo_command(todo_id, update_data)
+        # Extract data from the TodoUpdate object
+        if hasattr(update_data, "model_dump"):
+            # For updates, preserve None values that were explicitly set
+            all_data = update_data.model_dump(exclude_none=False)
+            # Only include fields that were explicitly set
+            data = {
+                k: v
+                for k, v in all_data.items()
+                if getattr(update_data, k) is not None
+                or k in update_data.model_fields_set
+            }
+        else:
+            data = dict(update_data)
 
-        # Execute the command to update the todo
-        result_id = self.orchestrator.execute_command(command, return_raw=True)
+        # Update the todo using the orchestrator
+        result_id = self.orchestrator.update_todo(todo_id, data)
 
         if not result_id or result_id != todo_id:
             raise AppleScriptError(
@@ -549,11 +562,14 @@ class Things3API:
         Raises:
             AppleScriptError: If the AppleScript execution fails
         """
-        # Generate the AppleScript command using the orchestrator
-        command = self.orchestrator.create_project_command(project_data)
+        # Extract data from the ProjectCreate object
+        if hasattr(project_data, "model_dump"):
+            data = project_data.model_dump(exclude_none=True)
+        else:
+            data = dict(project_data)
 
-        # Execute the command to create the project
-        project_id = self.orchestrator.execute_command(command, return_raw=True)
+        # Create the project using the orchestrator
+        project_id = self.orchestrator.create_project(data)
 
         if not project_id:
             raise AppleScriptError("Failed to create project - no ID returned")
@@ -581,11 +597,22 @@ class Things3API:
         Raises:
             AppleScriptError: If the AppleScript execution fails
         """
-        # Generate the AppleScript command using the orchestrator
-        command = self.orchestrator.update_project_command(project_id, update_data)
+        # Extract data from the ProjectUpdate object
+        if hasattr(update_data, "model_dump"):
+            # For updates, preserve None values that were explicitly set
+            all_data = update_data.model_dump(exclude_none=False)
+            # Only include fields that were explicitly set
+            data = {
+                k: v
+                for k, v in all_data.items()
+                if getattr(update_data, k) is not None
+                or k in update_data.model_fields_set
+            }
+        else:
+            data = dict(update_data)
 
-        # Execute the command to update the project
-        result_id = self.orchestrator.execute_command(command, return_raw=True)
+        # Update the project using the orchestrator
+        result_id = self.orchestrator.update_project(project_id, data)
 
         if not result_id or result_id != project_id:
             raise AppleScriptError(
