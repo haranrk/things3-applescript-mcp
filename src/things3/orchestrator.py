@@ -95,7 +95,8 @@ class Things3Orchestrator:
                 script = command
 
         # Determine if we should use structured output
-        use_structured = not return_raw and not self._is_write_command(script)
+        # Always use structured output for read operations, regardless of return_raw
+        use_structured = not self._is_write_command(script)
 
         try:
             # Execute the script

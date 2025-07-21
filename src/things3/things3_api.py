@@ -253,7 +253,7 @@ class Things3API:
             AppleScriptError: If the AppleScript execution fails
         """
         command = f'get properties of to dos of list "{list_name}"'
-        props_list = self.orchestrator.execute_command(command)
+        props_list = self.orchestrator.list_todos(list_name)
 
         if not isinstance(props_list, list):
             props_list = [props_list] if props_list else []
