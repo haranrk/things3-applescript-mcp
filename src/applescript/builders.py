@@ -18,7 +18,7 @@ class AppleScriptCommand:
     using method chaining.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize an empty AppleScript command."""
         self._tell_app: Optional[str] = None
         self._commands: List[str] = []
@@ -227,7 +227,7 @@ class AppleScriptCommand:
 class CommandBuilder:
     """Base class for specialized command builders."""
 
-    def build_command(self, **kwargs) -> AppleScriptCommand:
+    def build_command(self, **kwargs: Any) -> AppleScriptCommand:
         """
         Build a specialized AppleScript command.
 
