@@ -12,7 +12,7 @@ from things3.things3_api import Things3API
 from things3.models import TodoCreate, TodoUpdate, ProjectCreate, ProjectUpdate
 
 # Create the MCP server
-mcp = FastMCP(name="things3-mcp")
+mcp: FastMCP = FastMCP(name="things3-mcp")
 
 # Create Things3 API instance
 api = Things3API()
@@ -205,7 +205,7 @@ async def update_todo(
         area_ref = f"area id {area_id}" if area_id else None
 
     # Create TodoUpdate object with only provided fields
-    update_fields = {}
+    update_fields: Dict[str, Any] = {}
     if name is not None:
         update_fields["name"] = name
     if notes is not None:
@@ -359,7 +359,7 @@ async def update_project(
         area_ref = f"area id {area_id}" if area_id else None
 
     # Create ProjectUpdate object with only provided fields
-    update_fields = {}
+    update_fields: Dict[str, Any] = {}
     if name is not None:
         update_fields["name"] = name
     if notes is not None:
@@ -428,13 +428,13 @@ async def get_all_tags() -> List[Dict[str, Any]]:
     return [tag.model_dump() for tag in tags]
 
 
-def signal_handler(signum, frame):
+def signal_handler(signum: int, frame: Any) -> None:
     """Handle SIGINT gracefully."""
     print("\nShutting down server gracefully...", file=sys.stderr)
     sys.exit(0)
 
 
-def main():
+def main() -> None:
     # Register signal handler for graceful shutdown
     signal.signal(signal.SIGINT, signal_handler)
 

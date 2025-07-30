@@ -42,7 +42,7 @@ class Things3Orchestrator:
     Things 3 using the modular AppleScript infrastructure.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the Things 3 orchestrator."""
         self.app_name = "Things3"
         self.engine = AppleScriptEngine()

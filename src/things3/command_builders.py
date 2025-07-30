@@ -18,7 +18,7 @@ from applescript.converters import (
 class Things3CommandBuilder(CommandBuilder):
     """Base class for Things 3 command builders."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.converter = PythonToAppleScriptConverter()
         self.ref_converter = AppleScriptReferenceConverter()
 
@@ -37,6 +37,8 @@ class Things3CommandBuilder(CommandBuilder):
                 "someday",
             ]:
                 return date_value.lower()
+            # For other strings, return as-is (could be a date string)
+            return date_value
 
         # Use converter for date objects - this already returns unquoted expressions
         return self.converter._format_date(date_value)
@@ -192,7 +194,8 @@ class TodoCommandBuilder(Things3CommandBuilder):
         if "project" in data:
             if data["project"]:
                 project_ref = self._format_reference(data["project"], "project")
-                cmd.move(todo_ref, to=project_ref)
+                if project_ref:
+                    cmd.move(todo_ref, to=project_ref)
             else:
                 # Remove from project (move to inbox)
                 cmd.move(todo_ref, to='list "Inbox"')

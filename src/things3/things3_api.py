@@ -36,7 +36,7 @@ class Things3API:
     like todos, projects, areas, and tags.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the Things 3 API."""
         self.orchestrator = Things3Orchestrator()
 
@@ -107,6 +107,15 @@ class Things3API:
         deadline = self._parse_date(props.get("deadline"))
         start_date = self._parse_date(props.get("start date"))
 
+        # Parse required dates (creation_date is required)
+        creation_date = self._parse_date(props["creation date"])
+        if not creation_date:
+            raise ValueError("creation date is required for Todo")
+        
+        modification_date = (
+            self._parse_date(props.get("modification date")) or creation_date
+        )
+        
         return Todo(
             id=props["id"],
             name=props["name"],
@@ -115,9 +124,8 @@ class Things3API:
             due_date=due_date.date() if due_date else None,
             deadline=deadline.date() if deadline else None,
             start_date=start_date.date() if start_date else None,
-            creation_date=self._parse_date(props["creation date"]),
-            modification_date=self._parse_date(props.get("modification date"))
-            or self._parse_date(props["creation date"]),
+            creation_date=creation_date,
+            modification_date=modification_date,
             completion_date=self._parse_date(props.get("completion date")),
             cancellation_date=self._parse_date(props.get("cancellation date")),
             activation_date=self._parse_date(props.get("activation date")),
@@ -141,14 +149,22 @@ class Things3API:
         # Parse deadline as date only (Projects use "due date" property)
         deadline = self._parse_date(props.get("due date"))
 
+        # Parse required dates
+        creation_date = self._parse_date(props["creation date"])
+        if not creation_date:
+            raise ValueError("creation date is required for Project")
+        
+        modification_date = (
+            self._parse_date(props.get("modification date")) or creation_date
+        )
+        
         return Project(
             id=props["id"],
             name=props["name"],
             notes=props.get("notes", ""),
             status=props.get("status"),
-            creation_date=self._parse_date(props["creation date"]),
-            modification_date=self._parse_date(props.get("modification date"))
-            or self._parse_date(props["creation date"]),
+            creation_date=creation_date,
+            modification_date=modification_date,
             completion_date=self._parse_date(props.get("completion date")),
             cancellation_date=self._parse_date(props.get("cancellation date")),
             activation_date=self._parse_date(props.get("activation date")),
@@ -317,7 +333,7 @@ class Things3API:
         """
         # Things 3 doesn't have direct tag filtering in AppleScript, so we get all todos and filter
         all_todos = self.get_all_todos()
-        return [todo for todo in all_todos if tag_name in todo.tags]
+        return [todo for todo in all_todos if todo.tags and tag_name in todo.tags]
 
     # Project read operations
 

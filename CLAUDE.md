@@ -9,12 +9,11 @@ This is an MCP (Model Control Protocol) server that provides bidirectional integ
 ## Common Development Commands
 
 ### Environment Setup
-```bash
-# Install dependencies
-uv sync
-
-# Activate virtual environment (if needed)
-source .venv/bin/activate
+Always run python code with uv run
+```
+uv run python ...
+uv run pytest ...
+uv run mypy src
 ```
 
 ### Running the Server

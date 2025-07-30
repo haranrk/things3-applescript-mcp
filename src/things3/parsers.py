@@ -162,7 +162,7 @@ class Things3PropertyNormalizer:
     standardized Python representations.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.date_parser = Things3DateParser()
         self.status_parser = Things3StatusParser()
         self.class_parser = Things3ClassParser()
@@ -177,7 +177,7 @@ class Things3PropertyNormalizer:
         Returns:
             Normalized properties dictionary
         """
-        normalized = {}
+        normalized: Dict[str, Any] = {}
 
         for key, value in props.items():
             # Handle specific property types
